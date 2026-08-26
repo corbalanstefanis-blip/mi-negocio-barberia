@@ -1,0 +1,26 @@
+{
+  "id": "./",
+  "name": "Mi Negocio — Barbería",
+  "short_name": "Mi Negocio",
+  "description": "Gestión para barberías: agenda, clientes, fila, lista de espera, stock, caja, reportes y WhatsApp asistido.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#203F68",
+  "lang": "es-AR",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
