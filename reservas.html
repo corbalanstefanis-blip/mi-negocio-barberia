@@ -15,7 +15,8 @@
 (()=>{'use strict';
 const KEY='mi-negocio-barberia-v4';
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-const params=new URLSearchParams(location.search),slug=params.get('b')||'mi-barberia',api=(params.get('api')||'').replace(/\/+$/,'');
+const DEFAULT_API='https://mi-negocio-reservas.corbalanstefanis.workers.dev';
+const params=new URLSearchParams(location.search),slug=params.get('b')||'mi-barberia',api=(params.get('api')||DEFAULT_API).replace(/\/+$/,'');
 const pad=n=>String(n).padStart(2,'0'),iso=(d=new Date())=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,today=iso();
 let cfg=null,selectedService='',selectedDate=today,selectedTime='',slots=[];
 const money=n=>new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(Number(n||0));
