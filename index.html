@@ -163,9 +163,9 @@ button.row:active{background:var(--paper)}
 .techLine{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;padding:3px 0;font-weight:500}
 
 /* -------- sub-pestañas -------- */
-.subtabs{display:flex;gap:8px;overflow-x:auto;padding:2px 22px 4px}
-.subtabs::-webkit-scrollbar{height:0}
-.subtab{border:0;border-radius:999px;padding:8px 14px;background:var(--card);border:1px solid var(--line);color:var(--ink-soft);white-space:nowrap;font-size:12px;font-weight:700}
+.subtabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:2px 22px 6px;overflow:visible}
+.subtab{width:100%;min-height:40px;border:0;border-radius:14px;padding:7px 7px;background:var(--card);border:1px solid var(--line);color:var(--ink-soft);white-space:normal;line-height:1.15;font-size:11.5px;font-weight:700;text-align:center}
+.subtab:nth-child(5),.subtab:nth-child(6){grid-column:span 2}
 .subtab.active{background:var(--barber-blue);color:#fff;border-color:var(--barber-blue)}
 
 /* -------- botones -------- */
@@ -499,7 +499,7 @@ function clientsView(){
 }
 function clientRows(arr){const fu=followUps();return arr.length?arr.map(c=>{const f=fu.find(x=>x.client.id===c.id);return `<button class="row" data-client="${c.id}" style="width:100%;text-align:left"><div class="rowMain"><div class="rowTitle">${esc(c.name)}</div><div class="rowSub">${f?(f.contacted?`Contactado · hace ${f.days} días que no vuelve`:`Hace ${f.days} días que no vuelve`):esc(c.phone||'Sin teléfono')}</div></div>${f?.contacted?'<span class="pill confirmed">Contactado</span>':'<span class="muted">›</span>'}</button>`}).join(''):'<div class="empty">No hay clientes.</div>'}
 function businessView(){
- const tabs=[['appointments','Agenda'],['queue','Fila'],['wait','Espera'],['services','Servicios'],['inventory','Insumos'],['online','Reservas online']];
+ const tabs=[['appointments','Agenda'],['queue','Fila'],['wait','Espera'],['online','Reservas online'],['services','Servicios'],['inventory','Insumos']];
  return `<header class="header"><div class="profileTag">✂ Perfil activo: Barbería</div><h1 style="margin-top:8px">Negocio</h1><div class="eyebrow">${esc(data.settings.businessName)} · versión madre</div></header><div class="subtabs">${tabs.map(([id,l])=>`<button class="subtab ${sub===id?'active':''}" data-sub="${id}">${l}</button>`).join('')}</div>${sub==='appointments'?appointmentsPanel():sub==='queue'?queuePanel():sub==='wait'?waitPanel():sub==='services'?servicesPanel():sub==='inventory'?inventoryPanel():onlineBookingsPanel()}`
 }
 function appointmentsPanel(){
@@ -628,7 +628,7 @@ function backup(){const blob=new Blob([JSON.stringify({version:6,profile:'barber
 function restore(e){const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{data=migrate(JSON.parse(rd.result));applyTheme();save();selected=null;render();alert('Respaldo restaurado.')}catch(_){alert('No pude leer ese respaldo.')}};rd.readAsText(f)}
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;render()});
 async function installApp(){if(installPrompt){installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;render();return}if(window.matchMedia('(display-mode: standalone)').matches)return alert('La aplicación ya está instalada.');alert('Si no aparece la opción automática, usá el menú del navegador y elegí “Instalar aplicación” o “Agregar a pantalla de inicio”.')}
-if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
+if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('./sw.js');await reg.update();let refreshing=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(refreshing)return;refreshing=true;location.reload()})}catch(e){}})}
 window.addEventListener('popstate',e=>{const st=e.state;if($('#modal').innerHTML)$('#modal').innerHTML='';if(st?.miNegocio){tab=st.tab||'today';sub=st.sub||'appointments';selected=st.selected||null;agendaDate=st.agendaDate||TODAY;render()}});
 if(location.protocol!=='file:')history.replaceState(appHistoryState(),'',location.href);
 
