@@ -1,4 +1,4 @@
-const CACHE='mi-negocio-barberia-v15';
+const CACHE='mi-negocio-barberia-v16';
 const ASSETS=['./','./index.html','./reservas.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
