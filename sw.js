@@ -1,4 +1,4 @@
-const CACHE='mi-negocio-barberia-v20-turnos-sync';
+const CACHE='mi-negocio-barberia-v21-modo-trabajo';
 const ASSETS=['./','./index.html','./reservas.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
