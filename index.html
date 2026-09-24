@@ -380,7 +380,7 @@ function migrate(raw){
  out.appointments=(raw.appointments||base.appointments).map(a=>({id:a.id,clientId:a.clientId||null,walkInName:a.walkInName||'',serviceId:a.serviceId,date:a.date||TODAY,time:a.time??a.hora??'',status:a.status||a.estado||'pending',price:Number(a.price??a.precio??0),factor:Number(a.factor??a.consumoFactor??1),label:a.label||a.consumoLabel||'Normal',consumed:Boolean(a.consumed),paidAmount:Number(a.paidAmount??(a.status==='completed'||a.estado==='completed'?a.price??a.precio??0:0)),depositAmount:Number(a.depositAmount||0),paymentStatus:a.paymentStatus||((a.status==='completed'||a.estado==='completed')?'paid':'pending'),accountId:a.accountId||'a1',note:a.note||'',waConfirmSentAt:a.waConfirmSentAt||'',waReminderSentAt:a.waReminderSentAt||'',source:a.source||'manual',onlineBookingId:a.onlineBookingId||'',requestedAt:a.requestedAt||''}));
  out.txns=(raw.txns||base.txns).map(t=>({id:t.id,clientId:t.clientId||null,appointmentId:t.appointmentId||null,source:t.source||'manual',type:t.type,cat:t.cat||t.category||'',amount:Number(t.amount||0),accountId:t.accountId||'a1',date:t.date||TODAY,desc:t.desc||''}));
  out.wait=(raw.wait||raw.waitlist||base.wait).map(w=>({id:w.id||id('w'),clientId:w.clientId||null,serviceId:w.serviceId||'',date:w.date||'',from:w.from||'',to:w.to||'',pref:w.pref||w.preferencia||''}));
- out.queue=raw.queue||base.queue;
+ out.queue=(raw.queue||base.queue).map(q=>({...q,businessDate:q.businessDate||TODAY,appointmentId:q.appointmentId||'',source:q.source||'local'}));
  out.logs=raw.logs||raw.consumptionLogs||base.logs;
  out.services=out.services.map(s=>({id:s.id,name:s.name||s.nombre,duration:Number(s.duration??s.duracion??30),price:Number(s.price??s.precio??0),onlineEnabled:s.onlineEnabled!==false,allowOverbook:Boolean(s.allowOverbook),maxConcurrent:Math.max(1,Number(s.maxConcurrent||1)),recipe:(s.recipe||s.receta||[]).map(r=>Array.isArray(r)?{inventoryId:r[0],qty:Number(r[1]||0)}:{inventoryId:r.inventoryId,qty:Number(r.qty||0)})}));
  return out;
@@ -396,7 +396,7 @@ function applyTheme(theme=data.settings.theme||'classic'){
 }
 function setTheme(theme){applyTheme(theme);save();render()}
 const tomorrow=()=>{const d=new Date();d.setDate(d.getDate()+1);return iso(d)};
-function save(){localStorage.setItem(KEY,JSON.stringify(data));scheduleOnlineSync()}
+function save(){localStorage.setItem(KEY,JSON.stringify(data));scheduleOnlineSync();scheduleSharedOperationsPush()}
 function client(id){return data.clients.find(x=>x.id===id)}
 function service(id){return data.services.find(x=>x.id===id)}
 function inv(id){return data.inventory.find(x=>x.id===id)}
@@ -471,6 +471,109 @@ function bookingPublicUrl(){const c=onlineCfg(),base=bookingBaseUrl(),parts=[`b=
 function telegramPairCode(){const c=onlineCfg();if(!c.telegramPairCode){c.telegramPairCode=Math.random().toString(36).slice(2,8).toUpperCase();save()}return c.telegramPairCode}
 async function pairTelegram(){const c=onlineCfg();if(!c.backendUrl)return alert('Primero configurá la URL del backend de reservas.');if(!c.enabled)return alert('Primero activá las reservas online y guardá las reglas.');const code=telegramPairCode();const synced=await syncOnlineBusiness(false);if(!synced)return alert('No pude sincronizar la configuración antes de vincular Telegram.');try{const r=await fetch(cleanBackend(c.backendUrl)+'/api/owner/telegram-pair',{method:'POST',headers:{'Content-Type':'application/json','x-owner-secret':c.ownerSecret},body:JSON.stringify({slug:cleanSlug(c.slug),code})});const raw=await r.text();let body={};try{body=JSON.parse(raw)}catch{}if(!r.ok)throw new Error(body.error||raw||'No pudimos vincular Telegram.');c.telegramChatId=String(body.chatId||'');c.telegramEnabled=true;save();await syncOnlineBusiness(false);render();alert('Telegram vinculado correctamente. Te enviamos un mensaje de prueba.')}catch(e){alert(String(e.message||e))}}
 function futureOnlineBlocks(){return data.appointments.filter(a=>a.date>=TODAY&&a.time&&['pending','confirmed'].includes(a.status)).map(a=>({id:a.id,onlineBookingId:a.onlineBookingId||'',serviceId:a.serviceId,date:a.date,time:a.time,duration:Number(service(a.serviceId)?.duration||30),status:a.status}))}
+function sharedAppointmentId(a){return String(a?.onlineBookingId||a?.id||'')}
+function appointmentBySharedId(sharedId){const key=String(sharedId||'');return data.appointments.find(a=>sharedAppointmentId(a)===key)||null}
+function sharedOpsReady(){const c=onlineCfg();return Boolean(c.enabled&&c.backendUrl&&c.ownerSecret&&location.protocol!=='file:')}
+let sharedOpsPushTimer=null,sharedOpsBusy=false,sharedOpsLastError='';
+function scheduleSharedOperationsPush(){if(!sharedOpsReady())return;clearTimeout(sharedOpsPushTimer);sharedOpsPushTimer=setTimeout(()=>pushSharedOperations(false),650)}
+async function sharedPost(path,body){
+ const c=onlineCfg();
+ const r=await fetch(cleanBackend(c.backendUrl)+path,{method:'POST',headers:{'Content-Type':'application/json','x-owner-secret':c.ownerSecret},body:JSON.stringify({...body,slug:cleanSlug(c.slug)})});
+ if(!r.ok)throw new Error(await r.text());
+ return r.json();
+}
+function operationalSnapshot(){
+ return JSON.stringify({
+  a:data.appointments.filter(a=>a.date>=TODAY).map(a=>[sharedAppointmentId(a),a.serviceId,a.date,a.time,a.status,a.clientId,a.walkInName||'']),
+  q:data.queue.filter(q=>(q.businessDate||TODAY)===TODAY).map(q=>[q.id,q.appointmentId||'',q.clientId||'',q.name||'',q.serviceId,q.arrival,q.status])
+ });
+}
+async function pushSharedOperations(show=false){
+ if(!sharedOpsReady()||sharedOpsBusy)return false;
+ sharedOpsBusy=true;
+ try{
+  const aps=data.appointments.filter(a=>a.date>=TODAY&&['pending','confirmed','cancelled','no_show','completed'].includes(a.status));
+  for(const a of aps){
+   const cl=client(a.clientId),sharedId=sharedAppointmentId(a);
+   const res=await sharedPost('/api/owner/appointment-upsert',{
+    id:sharedId,serviceId:a.serviceId,date:a.date,time:a.time||'',status:a.status,price:Number(a.price||service(a.serviceId)?.price||0),
+    clientName:cl?.name||a.walkInName||'',clientPhone:cl?.phone||'',note:a.note||''
+   });
+   if(!a.onlineBookingId&&res?.id)a.onlineBookingId=String(res.id);
+  }
+  const qs=data.queue.filter(q=>(q.businessDate||TODAY)===TODAY);
+  for(const q of qs){
+   const cl=client(q.clientId),linked=q.appointmentId?data.appointments.find(a=>a.id===q.appointmentId):null;
+   await sharedPost('/api/owner/queue-upsert',{
+    id:q.id,appointmentId:linked?sharedAppointmentId(linked):(q.sharedAppointmentId||''),clientName:cl?.name||q.name||'',clientPhone:cl?.phone||q.phone||'',
+    serviceId:q.serviceId,arrival:q.arrival||'',status:q.status||'waiting',source:q.source||'shared',businessDate:q.businessDate||TODAY
+   });
+  }
+  sharedOpsLastError='';
+  localStorage.setItem(KEY,JSON.stringify(data));
+  if(show)alert('Agenda y fila sincronizadas.');
+  return true;
+ }catch(e){
+  sharedOpsLastError=String(e.message||e);
+  if(show)alert('No pude sincronizar la operación del local: '+sharedOpsLastError);
+  return false;
+ }finally{sharedOpsBusy=false}
+}
+function ensureSharedClient(name,phone){
+ const normalized=whatsappNumber(phone||'');
+ let found=normalized?data.clients.find(c=>whatsappNumber(c.phone||'')===normalized):null;
+ if(!found&&name)found=data.clients.find(c=>String(c.name||'').trim().toLowerCase()===String(name).trim().toLowerCase())||null;
+ if(!found&&name)found=newClientRecord(name,phone||'');
+ else if(found){if(name&&!found.name)found.name=name;if(phone&&!found.phone)found.phone=phone}
+ return found?.id||null;
+}
+async function pullSharedOperations(show=false){
+ if(!sharedOpsReady()||sharedOpsBusy)return false;
+ sharedOpsBusy=true;
+ const before=operationalSnapshot();
+ try{
+  const c=onlineCfg(),r=await fetch(cleanBackend(c.backendUrl)+'/api/owner/state?slug='+encodeURIComponent(cleanSlug(c.slug)),{headers:{'x-owner-secret':c.ownerSecret}});
+  if(!r.ok)throw new Error(await r.text());
+  const res=await r.json(),bookings=Array.isArray(res.bookings)?res.bookings:[],queue=Array.isArray(res.queue)?res.queue:[];
+  for(const b of bookings){
+   const srv=service(b.serviceId);if(!srv)continue;
+   const cid=ensureSharedClient(b.clientName||'Cliente',b.clientPhone||'');
+   let a=appointmentBySharedId(b.id);
+   if(!a){
+    a={id:id('ap'),clientId:cid,walkInName:cid?'':(b.clientName||''),serviceId:b.serviceId,date:b.date,time:b.time||'',status:b.status||'pending',price:Number(b.price??srv.price??0),factor:1,label:'Normal',consumed:false,paidAmount:0,depositAmount:0,paymentStatus:'pending',accountId:'a1',note:b.note||'',waConfirmSentAt:'',waReminderSentAt:'',source:'shared',onlineBookingId:String(b.id),requestedAt:b.createdAt||nowIso()};
+    data.appointments.push(a);
+   }else{
+    a.clientId=cid||a.clientId;a.serviceId=b.serviceId;a.date=b.date;a.time=b.time||'';a.status=b.status||a.status;a.price=Number(b.price??a.price??srv.price??0);a.note=b.note??a.note??'';a.onlineBookingId=String(b.id);
+   }
+  }
+  const remoteQueue=queue.map(q=>{
+   const cid=ensureSharedClient(q.clientName||'Cliente',q.clientPhone||'');
+   const linked=q.appointmentId?appointmentBySharedId(q.appointmentId):null;
+   const prev=data.queue.find(x=>x.id===q.id);
+   return {
+    id:String(q.id),clientId:cid||prev?.clientId||null,name:cid?'':(q.clientName||prev?.name||''),phone:q.clientPhone||prev?.phone||'',serviceId:q.serviceId,
+    factor:Number(prev?.factor||1),label:prev?.label||'Normal',arrival:q.arrival||prev?.arrival||'',status:q.status||'waiting',
+    appointmentId:linked?.id||'',sharedAppointmentId:q.appointmentId||'',source:q.source||'shared',businessDate:q.businessDate||TODAY,updatedAt:q.updatedAt||''
+   };
+  });
+  data.queue=[...data.queue.filter(q=>(q.businessDate||TODAY)!==TODAY),...remoteQueue];
+  sharedOpsLastError='';
+  localStorage.setItem(KEY,JSON.stringify(data));
+  const after=operationalSnapshot(),changed=before!==after;
+  if(changed&&!$('#modal').innerHTML)render();
+  if(show)alert('Agenda y fila actualizadas.');
+  return true;
+ }catch(e){
+  sharedOpsLastError=String(e.message||e);
+  if(show)alert('No pude actualizar la operación del local: '+sharedOpsLastError);
+  return false;
+ }finally{sharedOpsBusy=false}
+}
+async function syncSharedOperationsCycle(){
+ if(!sharedOpsReady()||document.visibilityState!=='visible')return;
+ const pushed=await pushSharedOperations(false);
+ if(pushed)await pullSharedOperations(false);
+}
 let onlineSyncTimer=null;
 function scheduleOnlineSync(){const c=onlineCfg();if(!c.enabled||!c.backendUrl||location.protocol==='file:')return;clearTimeout(onlineSyncTimer);onlineSyncTimer=setTimeout(()=>syncOnlineBusiness(false),800)}
 async function syncOnlineBusiness(show=true){const c=onlineCfg();if(!c.backendUrl){if(show)alert('Primero configurá la URL del backend de reservas.');return false}try{const payload={slug:cleanSlug(c.slug),businessName:data.settings.businessName,services:data.services.map(s=>({id:s.id,name:s.name,duration:Number(s.duration),price:Number(s.price),onlineEnabled:s.onlineEnabled!==false,allowOverbook:Boolean(s.allowOverbook),maxConcurrent:Math.max(1,Number(s.maxConcurrent||1))})),bookingSettings:{enabled:Boolean(c.enabled),openTime:c.openTime,closeTime:c.closeTime,slotStep:Number(c.slotStep||15),minAdvanceHours:Number(c.minAdvanceHours||0),maxAdvanceDays:Number(c.maxAdvanceDays||30),approvalMode:c.approvalMode||'auto',workingDays:c.workingDays||[1,2,3,4,5,6],telegramEnabled:Boolean(c.telegramEnabled)},telegramChatId:c.telegramChatId||'',localBlocks:futureOnlineBlocks()};const r=await fetch(cleanBackend(c.backendUrl)+'/api/business/sync',{method:'POST',headers:{'Content-Type':'application/json','x-owner-secret':c.ownerSecret},body:JSON.stringify(payload)});if(!r.ok)throw new Error(await r.text());c.lastSyncAt=nowIso();localStorage.setItem(KEY,JSON.stringify(data));if(show){render();alert('Reservas online sincronizadas.')}return true}catch(e){if(show)alert('No se pudo sincronizar: '+String(e.message||e));return false}}
@@ -575,7 +678,7 @@ function openModal(kind,preset={}){
 function saveSimpleModal(kind,preset={}){
  let createdAppointmentId=null;
  if(kind==='appointment'){const sid=$('#mService').value,date=$('#mDate').value,time=$('#mTime').value,f=Number($('#mFactor').value),deposit=Number($('#mDeposit').value||0),price=Number(service(sid)?.price||0),hasClient=Boolean($('#mClient').value||$('#mNewClientName').value.trim());if(!hasClient||!sid||!date)return alert('Elegí o creá un cliente y completá servicio y fecha.');if(deposit<0||deposit>price)return alert('La seña no puede superar el precio del servicio.');const cid=resolveModalClient();if(!cid)return alert('Ingresá el nombre del nuevo cliente.');const apId=id('ap');createdAppointmentId=apId;data.appointments.push({id:apId,clientId:cid,serviceId:sid,date,time,status:'pending',price,factor:f,label:factorLabel(f),consumed:false,paidAmount:deposit,depositAmount:deposit,paymentStatus:deposit>=price&&price>0?'paid':deposit>0?'partial':'pending',note:$('#mNote').value.trim(),waConfirmSentAt:'',waReminderSentAt:''});if(deposit>0)data.txns.unshift({id:id('t'),clientId:cid,appointmentId:apId,source:'deposit',type:'income',cat:'Seña',amount:deposit,accountId:$('#mDepositAccount').value,date:TODAY,desc:`Seña · ${service(sid)?.name||'Servicio'}`});agendaDate=date;if(preset.waitId)data.wait=data.wait.filter(w=>w.id!==preset.waitId)}
- if(kind==='walkin'){const sid=$('#mService').value,name=$('#mWalkName').value.trim();if(!name||!sid)return alert('Ingresá el nombre y elegí el servicio.');const matched=data.clients.find(c=>String(c.name||'').trim().toLowerCase()===name.toLowerCase());const d=new Date();data.queue.push({id:id('q'),clientId:matched?.id||null,name:matched?'':name,phone:'',serviceId:sid,factor:1,label:'Normal',arrival:`${pad(d.getHours())}:${pad(d.getMinutes())}`,status:'waiting',appointmentId:'',source:'manual'})}
+ if(kind==='walkin'){const sid=$('#mService').value,name=$('#mWalkName').value.trim();if(!name||!sid)return alert('Ingresá el nombre y elegí el servicio.');const matched=data.clients.find(c=>String(c.name||'').trim().toLowerCase()===name.toLowerCase());const d=new Date();data.queue.push({id:id('q'),clientId:matched?.id||null,name:matched?'':name,phone:'',serviceId:sid,factor:1,label:'Normal',arrival:`${pad(d.getHours())}:${pad(d.getMinutes())}`,status:'waiting',appointmentId:'',sharedAppointmentId:'',source:'manual',businessDate:TODAY})}
  if(kind==='wait'){const cid=$('#mClient').value;if(!cid)return alert('Elegí un cliente.');const from=$('#mFrom').value,to=$('#mTo').value;if(from&&to&&from>to)return alert('El horario “desde” no puede ser posterior a “hasta”.');data.wait.unshift({id:id('w'),clientId:cid,serviceId:$('#mService').value||'',date:$('#mDate').value||'',from,to,pref:$('#mPref').value.trim()})}
  if(kind==='income'||kind==='expense'){const amount=Number($('#mAmount').value);if(!amount)return alert('Ingresá un monto.');data.txns.unshift({id:id('t'),clientId:kind==='income'?($('#mClient').value||null):null,appointmentId:null,source:'manual',type:kind==='income'?'income':'expense',cat:$('#mCat').value,amount,accountId:$('#mAccount').value,date:TODAY,desc:$('#mDesc').value.trim()})}
  save();closeModal();render();if(createdAppointmentId)openAppointmentSaved(createdAppointmentId)
@@ -618,7 +721,7 @@ async function markAppointmentArrived(apId){
  if(data.queue.some(q=>q.appointmentId===apId&&['waiting','in_service'].includes(q.status)))return;
  const d=new Date(),oldStatus=a.status;
  if(a.status==='pending')a.status='confirmed';
- data.queue.push({id:id('q'),clientId:a.clientId||null,name:a.walkInName||'',phone:'',serviceId:a.serviceId,factor:Number(a.factor||1),label:a.label||factorLabel(a.factor||1),arrival:`${pad(d.getHours())}:${pad(d.getMinutes())}`,status:'waiting',appointmentId:a.id,source:'appointment'});
+ data.queue.push({id:id('q'),clientId:a.clientId||null,name:a.walkInName||'',phone:'',serviceId:a.serviceId,factor:Number(a.factor||1),label:a.label||factorLabel(a.factor||1),arrival:`${pad(d.getHours())}:${pad(d.getMinutes())}`,status:'waiting',appointmentId:a.id,sharedAppointmentId:sharedAppointmentId(a),source:'appointment',businessDate:TODAY});
  save();render();
  if(a.onlineBookingId&&oldStatus!==a.status)await updateOnlineBookingRemote(a,a.status);
 }
@@ -680,8 +783,10 @@ window.addEventListener('popstate',e=>{const st=e.state;if($('#modal').innerHTML
 if(location.protocol!=='file:')history.replaceState(appHistoryState(),'',location.href);
 
 window.addEventListener('storage',e=>{if(e.key===KEY&&e.newValue){try{data=migrate(JSON.parse(e.newValue));applyTheme();render()}catch(_){}}});
-setTimeout(()=>{const c=onlineCfg();if(c.enabled&&c.backendUrl){pullOnlineBookings(false);syncOnlineBusiness(false)}},1200);
+setTimeout(async()=>{const c=onlineCfg();if(c.enabled&&c.backendUrl){pullOnlineBookings(false);syncOnlineBusiness(false);await syncSharedOperationsCycle()}},1200);
 setInterval(()=>{const c=onlineCfg();if(c.enabled&&c.backendUrl&&document.visibilityState==='visible')pullOnlineBookings(false)},60000);
+setInterval(()=>syncSharedOperationsCycle(),8000);
+window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncSharedOperationsCycle()});
 applyTheme();
 render();
 })();
