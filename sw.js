@@ -1,5 +1,5 @@
-const CACHE='mi-negocio-barberia-v25-telegram-vinculado';
-const ASSETS=['./','./index.html','./reservas.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+const CACHE='mi-negocio-barberia-v26-qr-llegadas';
+const ASSETS=['./','./index.html','./reservas.html','./llegada.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
