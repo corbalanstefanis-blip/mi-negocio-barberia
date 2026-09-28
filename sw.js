@@ -1,4 +1,4 @@
-const CACHE='mi-negocio-barberia-v22-operacion-compartida';
+const CACHE='mi-negocio-barberia-v23-vincular-dispositivos';
 const ASSETS=['./','./index.html','./reservas.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
