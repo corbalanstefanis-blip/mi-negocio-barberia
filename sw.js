@@ -1,4 +1,4 @@
-const CACHE='mi-negocio-barberia-v23-vincular-dispositivos';
+const CACHE='mi-negocio-barberia-v24-reservas-claras';
 const ASSETS=['./','./index.html','./reservas.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
