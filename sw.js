@@ -1,4 +1,4 @@
-const CACHE='mi-negocio-barberia-v26-qr-llegadas';
+const CACHE='mi-negocio-barberia-v27-modo-trabajo-limpio';
 const ASSETS=['./','./index.html','./reservas.html','./llegada.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
