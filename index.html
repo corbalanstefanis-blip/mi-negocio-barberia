@@ -521,7 +521,7 @@ async function pairTelegram(){const c=onlineCfg();if(!c.backendUrl)return alert(
 function futureOnlineBlocks(){return data.appointments.filter(a=>a.date>=TODAY&&a.time&&['pending','confirmed'].includes(a.status)).map(a=>({id:a.id,onlineBookingId:a.onlineBookingId||'',serviceId:a.serviceId,date:a.date,time:a.time,duration:Number(service(a.serviceId)?.duration||30),status:a.status}))}
 function sharedAppointmentId(a){return String(a?.onlineBookingId||a?.id||'')}
 function appointmentBySharedId(sharedId){const key=String(sharedId||'');return data.appointments.find(a=>sharedAppointmentId(a)===key)||null}
-function sharedOpsReady(){const c=onlineCfg();return Boolean(c.enabled&&c.backendUrl&&hasOperationalCredential()&&location.protocol!=='file:')}
+function sharedOpsReady(){const c=onlineCfg();return Boolean(c.backendUrl&&hasOperationalCredential()&&location.protocol!=='file:')}
 let sharedOpsPushTimer=null,sharedOpsBusy=false,sharedOpsLastError='';
 function scheduleSharedOperationsPush(){if(!sharedOpsReady())return;clearTimeout(sharedOpsPushTimer);sharedOpsPushTimer=setTimeout(()=>pushSharedOperations(false),650)}
 async function sharedPost(path,body){
@@ -619,14 +619,29 @@ async function pullSharedOperations(show=false){
 }
 async function syncSharedOperationsCycle(){
  if(!sharedOpsReady()||document.visibilityState!=='visible')return;
- const c=onlineCfg();
- if(c.deviceToken){const pulled=await pullSharedOperations(false);if(pulled)await pushSharedOperations(false);return}
- const pushed=await pushSharedOperations(false);
- if(pushed)await pullSharedOperations(false);
+ const pulled=await pullSharedOperations(false);
+ if(pulled)await pushSharedOperations(false);
 }
 let onlineSyncTimer=null;
 function scheduleOnlineSync(){const c=onlineCfg();if(!c.enabled||!c.backendUrl||!c.ownerSecret||c.deviceToken||location.protocol==='file:')return;clearTimeout(onlineSyncTimer);onlineSyncTimer=setTimeout(()=>syncOnlineBusiness(false),800)}
 async function syncOnlineBusiness(show=true){const c=onlineCfg();if(!c.backendUrl){if(show)alert('Primero configurá la URL del backend de reservas.');return false}if(!c.ownerSecret||c.deviceToken){if(show)alert('Este dispositivo está vinculado para trabajar con la agenda y la fila. La configuración general se cambia desde el dispositivo administrador.');return false}try{const payload={slug:cleanSlug(c.slug),businessName:data.settings.businessName,services:data.services.map(s=>({id:s.id,name:s.name,duration:Number(s.duration),price:Number(s.price),onlineEnabled:s.onlineEnabled!==false,allowOverbook:Boolean(s.allowOverbook),maxConcurrent:Math.max(1,Number(s.maxConcurrent||1))})),bookingSettings:{enabled:Boolean(c.enabled),openTime:c.openTime,closeTime:c.closeTime,slotStep:Number(c.slotStep||15),minAdvanceHours:Number(c.minAdvanceHours||0),maxAdvanceDays:Number(c.maxAdvanceDays||30),approvalMode:c.approvalMode||'auto',workingDays:c.workingDays||[1,2,3,4,5,6],telegramEnabled:Boolean(c.telegramEnabled)},telegramChatId:c.telegramChatId||'',localBlocks:futureOnlineBlocks()};const r=await fetch(cleanBackend(c.backendUrl)+'/api/business/sync',{method:'POST',headers:{'Content-Type':'application/json','x-owner-secret':c.ownerSecret},body:JSON.stringify(payload)});if(!r.ok)throw new Error(await r.text());c.lastSyncAt=nowIso();localStorage.setItem(KEY,JSON.stringify(data));if(show){render();alert('Reservas online sincronizadas.')}return true}catch(e){if(show)alert('No se pudo sincronizar: '+String(e.message||e));return false}}
+async function syncAllNow(){
+ const c=onlineCfg();
+ let businessOk=true;
+ if(c.enabled&&c.ownerSecret&&!c.deviceToken)businessOk=await syncOnlineBusiness(false);
+ const pulled=await pullSharedOperations(false);
+ if(pulled)await pushSharedOperations(false);
+ render();
+ if(!pulled){
+  const msg=sharedOpsLastError||'No pude leer la agenda y fila compartidas.';
+  alert('No pude actualizar la operación compartida: '+msg);
+  return false;
+ }
+ if(!businessOk)alert('Agenda y fila actualizadas, pero la configuración de reservas online no pudo sincronizarse.');
+ else alert('Agenda y fila actualizadas.');
+ return true;
+}
+
 async function updateOnlineBookingRemote(a,statusOverride=null){
  const c=onlineCfg();
  if(!a?.onlineBookingId||!c.backendUrl)return true;
@@ -837,7 +852,7 @@ function bind(){
  document.querySelectorAll('[data-theme-choice]').forEach(b=>b.onclick=()=>setTheme(b.dataset.themeChoice));
 
  const obSave=$('#obSave');if(obSave)obSave.onclick=()=>{const c=onlineCfg();if(c.deviceToken&&!c.ownerSecret)return alert('Este dispositivo está vinculado para operar. Las reglas generales se cambian desde el dispositivo administrador.');const days=[...document.querySelectorAll('[data-ob-day]:checked')].map(x=>Number(x.dataset.obDay));if(!days.length)return alert('Elegí al menos un día habilitado.');const open=$('#obOpen').value,close=$('#obClose').value;if(!open||!close||open>=close)return alert('Revisá el horario de apertura y cierre.');c.enabled=$('#obEnabled').value==='1';c.slug=cleanSlug($('#obSlug').value);c.publicBaseUrl=$('#obBase').value.trim();c.backendUrl=cleanBackend($('#obBackend').value);c.openTime=open;c.closeTime=close;c.slotStep=Math.max(5,Number($('#obStep').value||15));c.minAdvanceHours=Math.max(0,Number($('#obMin').value||0));c.maxAdvanceDays=Math.max(1,Number($('#obMax').value||30));c.approvalMode=$('#obApproval').value;c.workingDays=days;c.telegramEnabled=$('#obTelegram').value==='1';save();render();if(c.backendUrl)syncOnlineBusiness(false)};
- const obCopy=$('#obCopy');if(obCopy)obCopy.onclick=copyBookingLink;const obPairTelegram=$('#obPairTelegram');if(obPairTelegram)obPairTelegram.onclick=pairTelegram;const obSync=$('#obSync');if(obSync)obSync.onclick=()=>syncOnlineBusiness(true);const obPull=$('#obPull');if(obPull)obPull.onclick=()=>pullOnlineBookings(true);const obCustomerQR=$('#obCustomerQR');if(obCustomerQR)obCustomerQR.onclick=openCustomerQR;const obGeneratePair=$('#obGeneratePair');if(obGeneratePair)obGeneratePair.onclick=generateDevicePairCode;const obPairDevice=$('#obPairDevice');if(obPairDevice)obPairDevice.onclick=openDevicePairModal;const obSharedSync=$('#obSharedSync');if(obSharedSync)obSharedSync.onclick=()=>pullSharedOperations(true);
+ const obCopy=$('#obCopy');if(obCopy)obCopy.onclick=copyBookingLink;const obPairTelegram=$('#obPairTelegram');if(obPairTelegram)obPairTelegram.onclick=pairTelegram;const obSync=$('#obSync');if(obSync)obSync.onclick=syncAllNow;const obPull=$('#obPull');if(obPull)obPull.onclick=()=>pullOnlineBookings(true);const obCustomerQR=$('#obCustomerQR');if(obCustomerQR)obCustomerQR.onclick=openCustomerQR;const obGeneratePair=$('#obGeneratePair');if(obGeneratePair)obGeneratePair.onclick=generateDevicePairCode;const obPairDevice=$('#obPairDevice');if(obPairDevice)obPairDevice.onclick=openDevicePairModal;const obSharedSync=$('#obSharedSync');if(obSharedSync)obSharedSync.onclick=()=>pullSharedOperations(true);
  const eb=document.querySelector('[data-edit-business]');if(eb)eb.onclick=openBusinessModal;
  const s=$('#search');if(s)s.oninput=()=>{const q=s.value.trim().toLowerCase(),qd=phoneDigits(q);$('#clientList').innerHTML=clientRows(data.clients.filter(c=>c.name.toLowerCase().includes(q)||(qd&&phoneDigits(c.phone).includes(qd))));document.querySelectorAll('[data-client]').forEach(b=>b.onclick=()=>{selected=b.dataset.client;tab='clients';render();pushAppState()})};
  const bk=$('#backup');if(bk)bk.onclick=backup;const rs=$('#restore');if(rs)rs.onchange=restore;const r=$('#reset');if(r)r.onclick=()=>{if(confirm('¿Reiniciar la demo y borrar los cambios de prueba?')){data=fresh();applyTheme();save();selected=null;agendaDate=TODAY;render()}};
@@ -852,7 +867,7 @@ window.addEventListener('popstate',e=>{const st=e.state;if($('#modal').innerHTML
 if(location.protocol!=='file:')history.replaceState(appHistoryState(),'',location.href);
 
 window.addEventListener('storage',e=>{if(e.key===KEY&&e.newValue){try{data=migrate(JSON.parse(e.newValue));applyTheme();render()}catch(_){}}});
-setTimeout(async()=>{const c=onlineCfg();if(c.enabled&&c.backendUrl){pullOnlineBookings(false);if(c.ownerSecret&&!c.deviceToken)syncOnlineBusiness(false);await syncSharedOperationsCycle()}},1200);
+setTimeout(async()=>{const c=onlineCfg();if(c.backendUrl){if(c.enabled)pullOnlineBookings(false);if(c.enabled&&c.ownerSecret&&!c.deviceToken)syncOnlineBusiness(false);await syncSharedOperationsCycle()}},1200);
 setInterval(()=>{const c=onlineCfg();if(c.enabled&&c.backendUrl&&document.visibilityState==='visible')pullOnlineBookings(false)},60000);
 setInterval(()=>syncSharedOperationsCycle(),8000);
 window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncSharedOperationsCycle()});
