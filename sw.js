@@ -1,4 +1,4 @@
-const CACHE='mi-negocio-barberia-v28-qr-fix';
+const CACHE='mi-negocio-barberia-v29-qr-lib-fix';
 const ASSETS=['./','./index.html','./reservas.html','./llegada.html','./qrcode.min.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
