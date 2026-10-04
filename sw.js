@@ -1,4 +1,4 @@
-const CACHE='mi-negocio-barberia-v31-checkin-sync';
+const CACHE='mi-negocio-barberia-v32-recuperar-acceso';
 const ASSETS=['./','./index.html','./reservas.html','./llegada.html','./qrcode.min.js?v=20261004-2','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
