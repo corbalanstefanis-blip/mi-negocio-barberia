@@ -512,10 +512,41 @@ async function pairThisDevice(){
   alert('Dispositivo vinculado a '+data.settings.businessName+'. Agenda y fila ya comparten la misma información.');
  }catch(e){alert('No pude vincular este dispositivo: '+String(e.message||e))}
 }
+async function startAdminRecovery(){
+ const c=onlineCfg(),backend=cleanBackend(c.backendUrl||DEFAULT_BACKEND),slug=cleanSlug(c.slug||'barberia-central');
+ try{
+  const r=await fetch(backend+'/api/recovery/code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug})});
+  const raw=await r.text();let body={};try{body=JSON.parse(raw)}catch{}
+  if(!r.ok)throw new Error(body.error||raw||'No pude iniciar la recuperación.');
+  modal('Recuperar acceso',`<div class="info">Vamos a comprobar que sos quien administra <b>${esc(body.businessName||data.settings.businessName)}</b> usando el Telegram ya vinculado al negocio.</div><div class="bookingLink"><div class="rowSub">Mandá exactamente este mensaje al bot</div><div class="rowTitle" style="font-size:20px;margin-top:6px">RECUPERAR ${esc(body.code)}</div><div class="rowSub" style="margin-top:8px">Abrí <b>@Mi_negocio_barberia_bot</b>, enviá ese mensaje y después volvé acá.</div></div><div class="btnRow"><a class="btn gray linkBtn" href="https://t.me/Mi_negocio_barberia_bot" target="_blank">Abrir bot</a><button class="btn dark" id="mRecoveryDone">Ya lo envié</button></div><div class="note" style="margin-top:10px">El código vence en 10 minutos y sirve una sola vez.</div>`);
+  const done=$('#mRecoveryDone');if(done)done.onclick=()=>completeAdminRecovery(body.code,slug,backend);
+ }catch(e){alert('No pude iniciar la recuperación: '+String(e.message||e))}
+}
+async function completeAdminRecovery(code,slug,backend){
+ const btn=$('#mRecoveryDone');if(btn){btn.disabled=true;btn.textContent='Verificando…'}
+ try{
+  const r=await fetch(backend+'/api/recovery/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug,code})});
+  const raw=await r.text();let body={};try{body=JSON.parse(raw)}catch{}
+  if(!r.ok)throw new Error(body.error||raw||'No pude recuperar el acceso.');
+  const c=onlineCfg(),previousServices=new Map(data.services.map(s=>[s.id,s]));
+  if(Array.isArray(body.services)&&body.services.length)data.services=body.services.map(s=>({...previousServices.get(s.id),...s,recipe:previousServices.get(s.id)?.recipe||[]}));
+  data.settings.businessName=body.businessName||data.settings.businessName;
+  c.backendUrl=backend;c.slug=cleanSlug(body.slug||slug);c.ownerSecret=String(body.ownerSecret||'');c.deviceToken='';c.deviceLabel='';c.telegramChatId=String(body.telegramChatId||'');
+  if(body.bookingSettings&&typeof body.bookingSettings==='object')Object.assign(c,body.bookingSettings);
+  c.enabled=body.bookingSettings?.enabled!==false;c.lastSyncAt=nowIso();
+  data.appointments=data.appointments.filter(a=>String(a.date||'')<TODAY);
+  data.queue=[];
+  localStorage.setItem(KEY,JSON.stringify(data));
+  closeModal();
+  await pullSharedOperations(false);
+  render();
+  alert('Acceso recuperado. Este navegador volvió a ser el dispositivo administrador.');
+ }catch(e){if(btn){btn.disabled=false;btn.textContent='Ya lo envié'}alert(String(e.message||e))}
+}
 function devicePanel(){
  const c=onlineCfg(),adminReady=Boolean(c.ownerSecret&&!c.deviceToken&&c.backendUrl&&c.lastSyncAt);
  if(c.deviceToken)return `<section class="section"><h2>Dispositivos del local</h2><div class="card"><div class="flexBetween"><div><div class="rowTitle">✓ Este dispositivo está vinculado</div><div class="rowSub">${esc(c.deviceLabel||'Dispositivo')} · ${esc(data.settings.businessName)}</div></div><span class="pill confirmed">Compartido</span></div><div class="note" style="margin-top:10px">Agenda, llegadas y fila se comparten con los demás dispositivos vinculados. Caja, costos, stock y reportes siguen siendo locales.</div><button class="btn gray full" style="margin-top:10px" id="obSharedSync">Actualizar ahora</button></div></section>`;
- return `<section class="section"><h2>Dispositivos del local</h2><div class="card"><div class="rowTitle">Usar la misma agenda en otro celular o PC</div><div class="rowSub">Vinculá los dispositivos una sola vez. No hace falta copiar claves privadas.</div><div class="btnRow">${adminReady?'<button class="btn dark" id="obGeneratePair">Generar código</button>':''}<button class="btn gray" id="obPairDevice">Vincular este dispositivo</button></div>${!adminReady?'<div class="note" style="margin-top:9px">Si este es el dispositivo principal, primero sincronizá las reservas online. Si es un dispositivo nuevo, tocá “Vincular este dispositivo”.</div>':''}</div></section>`
+ return `<section class="section"><h2>Dispositivos del local</h2><div class="card"><div class="rowTitle">Usar la misma agenda en otro celular o PC</div><div class="rowSub">Vinculá los dispositivos una sola vez. No hace falta copiar claves privadas.</div><div class="btnRow">${adminReady?'<button class="btn dark" id="obGeneratePair">Generar código</button>':''}<button class="btn gray" id="obPairDevice">Vincular este dispositivo</button>${!adminReady?'<button class="btn gray" id="obRecoverAdmin">Recuperar acceso</button>':''}</div>${!adminReady?'<div class="note" style="margin-top:9px">Si cambiaste de navegador o borraste los datos del sitio, usá “Recuperar acceso”. Si es otro equipo del local, usá “Vincular este dispositivo”.</div>':''}</div></section>`
 }
 async function pairTelegram(){const c=onlineCfg();if(!c.backendUrl)return alert('Primero configurá la URL del backend de reservas.');if(!c.enabled)return alert('Primero activá las reservas online y guardá las reglas.');const code=telegramPairCode();const synced=await syncOnlineBusiness(false);if(!synced)return alert('No pude sincronizar la configuración antes de vincular Telegram.');try{const r=await fetch(cleanBackend(c.backendUrl)+'/api/owner/telegram-pair',{method:'POST',headers:{'Content-Type':'application/json','x-owner-secret':c.ownerSecret},body:JSON.stringify({slug:cleanSlug(c.slug),code})});const raw=await r.text();let body={};try{body=JSON.parse(raw)}catch{}if(!r.ok)throw new Error(body.error||raw||'No pudimos vincular Telegram.');c.telegramChatId=String(body.chatId||'');c.telegramEnabled=true;save();await syncOnlineBusiness(false);render();alert('Telegram vinculado correctamente. Te enviamos un mensaje de prueba.')}catch(e){alert(String(e.message||e))}}
 function futureOnlineBlocks(){return data.appointments.filter(a=>a.date>=TODAY&&a.time&&['pending','confirmed'].includes(a.status)).map(a=>({id:a.id,onlineBookingId:a.onlineBookingId||'',serviceId:a.serviceId,date:a.date,time:a.time,duration:Number(service(a.serviceId)?.duration||30),status:a.status}))}
@@ -634,6 +665,7 @@ async function syncAllNow(){
  render();
  if(!pulled){
   const msg=sharedOpsLastError||'No pude leer la agenda y fila compartidas.';
+  if(/no autorizado/i.test(msg)){alert('Este navegador perdió la autorización del negocio. Vamos a recuperarla con el Telegram ya vinculado.');startAdminRecovery();return false}
   alert('No pude actualizar la operación compartida: '+msg);
   return false;
  }
@@ -852,7 +884,7 @@ function bind(){
  document.querySelectorAll('[data-theme-choice]').forEach(b=>b.onclick=()=>setTheme(b.dataset.themeChoice));
 
  const obSave=$('#obSave');if(obSave)obSave.onclick=()=>{const c=onlineCfg();if(c.deviceToken&&!c.ownerSecret)return alert('Este dispositivo está vinculado para operar. Las reglas generales se cambian desde el dispositivo administrador.');const days=[...document.querySelectorAll('[data-ob-day]:checked')].map(x=>Number(x.dataset.obDay));if(!days.length)return alert('Elegí al menos un día habilitado.');const open=$('#obOpen').value,close=$('#obClose').value;if(!open||!close||open>=close)return alert('Revisá el horario de apertura y cierre.');c.enabled=$('#obEnabled').value==='1';c.slug=cleanSlug($('#obSlug').value);c.publicBaseUrl=$('#obBase').value.trim();c.backendUrl=cleanBackend($('#obBackend').value);c.openTime=open;c.closeTime=close;c.slotStep=Math.max(5,Number($('#obStep').value||15));c.minAdvanceHours=Math.max(0,Number($('#obMin').value||0));c.maxAdvanceDays=Math.max(1,Number($('#obMax').value||30));c.approvalMode=$('#obApproval').value;c.workingDays=days;c.telegramEnabled=$('#obTelegram').value==='1';save();render();if(c.backendUrl)syncOnlineBusiness(false)};
- const obCopy=$('#obCopy');if(obCopy)obCopy.onclick=copyBookingLink;const obPairTelegram=$('#obPairTelegram');if(obPairTelegram)obPairTelegram.onclick=pairTelegram;const obSync=$('#obSync');if(obSync)obSync.onclick=syncAllNow;const obPull=$('#obPull');if(obPull)obPull.onclick=()=>pullOnlineBookings(true);const obCustomerQR=$('#obCustomerQR');if(obCustomerQR)obCustomerQR.onclick=openCustomerQR;const obGeneratePair=$('#obGeneratePair');if(obGeneratePair)obGeneratePair.onclick=generateDevicePairCode;const obPairDevice=$('#obPairDevice');if(obPairDevice)obPairDevice.onclick=openDevicePairModal;const obSharedSync=$('#obSharedSync');if(obSharedSync)obSharedSync.onclick=()=>pullSharedOperations(true);
+ const obCopy=$('#obCopy');if(obCopy)obCopy.onclick=copyBookingLink;const obPairTelegram=$('#obPairTelegram');if(obPairTelegram)obPairTelegram.onclick=pairTelegram;const obSync=$('#obSync');if(obSync)obSync.onclick=syncAllNow;const obPull=$('#obPull');if(obPull)obPull.onclick=()=>pullOnlineBookings(true);const obCustomerQR=$('#obCustomerQR');if(obCustomerQR)obCustomerQR.onclick=openCustomerQR;const obGeneratePair=$('#obGeneratePair');if(obGeneratePair)obGeneratePair.onclick=generateDevicePairCode;const obPairDevice=$('#obPairDevice');if(obPairDevice)obPairDevice.onclick=openDevicePairModal;const obRecoverAdmin=$('#obRecoverAdmin');if(obRecoverAdmin)obRecoverAdmin.onclick=startAdminRecovery;const obSharedSync=$('#obSharedSync');if(obSharedSync)obSharedSync.onclick=()=>pullSharedOperations(true);
  const eb=document.querySelector('[data-edit-business]');if(eb)eb.onclick=openBusinessModal;
  const s=$('#search');if(s)s.oninput=()=>{const q=s.value.trim().toLowerCase(),qd=phoneDigits(q);$('#clientList').innerHTML=clientRows(data.clients.filter(c=>c.name.toLowerCase().includes(q)||(qd&&phoneDigits(c.phone).includes(qd))));document.querySelectorAll('[data-client]').forEach(b=>b.onclick=()=>{selected=b.dataset.client;tab='clients';render();pushAppState()})};
  const bk=$('#backup');if(bk)bk.onclick=backup;const rs=$('#restore');if(rs)rs.onchange=restore;const r=$('#reset');if(r)r.onclick=()=>{if(confirm('¿Reiniciar la demo y borrar los cambios de prueba?')){data=fresh();applyTheme();save();selected=null;agendaDate=TODAY;render()}};
