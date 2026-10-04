@@ -1,5 +1,5 @@
-const CACHE='mi-negocio-barberia-v27-modo-trabajo-limpio';
-const ASSETS=['./','./index.html','./reservas.html','./llegada.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+const CACHE='mi-negocio-barberia-v28-qr-fix';
+const ASSETS=['./','./index.html','./reservas.html','./llegada.html','./qrcode.min.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
