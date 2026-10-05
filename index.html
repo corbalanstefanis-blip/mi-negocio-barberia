@@ -670,8 +670,9 @@ async function pullSharedOperations(show=false){
   const res=await r.json(),bookings=Array.isArray(res.bookings)?res.bookings:[],queue=Array.isArray(res.queue)?res.queue:[];
   for(const b of bookings){
    const srv=service(b.serviceId);if(!srv)continue;
-   const cid=ensureSharedClient(b.clientName||'Cliente',b.clientPhone||'');
-   let a=appointmentBySharedId(b.id);
+   const existingAp=appointmentBySharedId(b.id);
+   const cid=['pending','confirmed','completed'].includes(String(b.status||''))?ensureSharedClient(b.clientName||'Cliente',b.clientPhone||''):(existingAp?.clientId||null);
+   let a=existingAp;
    if(!a){
     a={id:id('ap'),clientId:cid,walkInName:cid?'':(b.clientName||''),serviceId:b.serviceId,date:b.date,time:b.time||'',status:b.status||'pending',price:Number(b.price??srv.price??0),factor:1,label:'Normal',consumed:false,paidAmount:0,depositAmount:0,paymentStatus:'pending',accountId:'a1',note:b.note||'',waConfirmSentAt:'',waReminderSentAt:'',source:'shared',onlineBookingId:String(b.id),requestedAt:b.createdAt||nowIso()};
     data.appointments.push(a);
@@ -944,6 +945,69 @@ function bind(){
  const bk=$('#backup');if(bk)bk.onclick=backup;const rs=$('#restore');if(rs)rs.onchange=restore;const r=$('#reset');if(r)r.onclick=()=>{if(confirm('¿Reiniciar la demo y borrar los cambios de prueba?')){data=fresh();applyTheme();save();selected=null;agendaDate=TODAY;render()}};
  const ia=$('#installApp');if(ia)ia.onclick=installApp;
 }
+async function prepareCommercialDemo(){
+ const c=onlineCfg();
+ if(cleanSlug(c.slug)!=='barberia-central')return alert('Esta preparación solo está habilitada para Barbería Central.');
+ if(!sharedOpsReady())return alert('Este navegador no está autorizado para preparar la demo. Recuperá o vinculá el acceso primero.');
+ if(!confirm('¿Preparar Barbería Central para grabar la demo? Se quitarán las pruebas activas y se cargarán datos ficticios prolijos.'))return;
+ try{
+  await pullSharedOperations(false);
+  const oldQueue=[...data.queue].filter(q=>(q.businessDate||TODAY)===TODAY&&['waiting','in_service'].includes(q.status));
+  for(const q of oldQueue){
+   await sharedPost('/api/owner/queue-upsert',{...queueSharedPayload(q),status:'done'});
+  }
+  const oldAppointments=[...data.appointments].filter(a=>String(a.date||'')>=TODAY&&['pending','confirmed'].includes(a.status));
+  for(const a of oldAppointments){
+   const cl=client(a.clientId),srv=service(a.serviceId);
+   await sharedPost('/api/owner/appointment-upsert',{
+    id:sharedAppointmentId(a),serviceId:a.serviceId,date:a.date,time:a.time||'',status:'cancelled',
+    price:Number(a.price??srv?.price??0),clientName:cl?.name||a.walkInName||'',clientPhone:cl?.phone||'',note:a.note||''
+   });
+  }
+
+  const keepSettings=JSON.parse(JSON.stringify(data.settings));
+  const keepServices=JSON.parse(JSON.stringify(data.services));
+  const base=fresh();
+  data=base;
+  data.settings=keepSettings;
+  data.services=keepServices;
+  data.clients=[
+   {id:'demo_c1',name:'Juan P.',phone:'+54 9 2252 400301',freq:21,tech:{Corte:'Degradé bajo, tijera arriba'},followUpContactedFor:'',followUpContactedAt:''},
+   {id:'demo_c2',name:'Pedro G.',phone:'+54 9 2252 400302',freq:30,tech:{Barba:'Perfilado prolijo'},followUpContactedFor:'',followUpContactedAt:''},
+   {id:'demo_c3',name:'Nicolás R.',phone:'+54 9 2252 400303',freq:21,tech:{},followUpContactedFor:'',followUpContactedAt:''}
+  ];
+  data.appointments=[];data.txns=[];data.wait=[];data.queue=[];data.logs=[];
+
+  const now=new Date(),mins=now.getHours()*60+now.getMinutes();
+  const round15=n=>Math.ceil(n/15)*15;
+  let apMin=round15(mins+60);
+  const close=toMin(c.closeTime||'19:00');
+  if(apMin+30>close)apMin=Math.max(toMin(c.openTime||'09:00'),close-30);
+  const apTime=fromMin(apMin);
+  const arr1=fromMin(Math.max(0,mins-8)),arr2=fromMin(Math.max(0,mins-3));
+
+  const upcoming={id:'demo-ap-upcoming',clientId:'demo_c3',walkInName:'',serviceId:'s1',date:TODAY,time:apTime,status:'confirmed',price:Number(service('s1')?.price||9000),factor:1,label:'Normal',consumed:false,paidAmount:0,depositAmount:0,paymentStatus:'pending',accountId:'a1',note:'',waConfirmSentAt:'',waReminderSentAt:'',source:'local',onlineBookingId:'demo-ap-upcoming',requestedAt:nowIso()};
+  const attending={id:'demo-q-attending',clientId:'demo_c1',name:'',phone:'+54 9 2252 400301',serviceId:'s3',factor:1,label:'Normal',arrival:arr1,status:'in_service',appointmentId:'',sharedAppointmentId:'',source:'demo',businessDate:TODAY};
+  const waiting={id:'demo-q-waiting',clientId:'demo_c2',name:'',phone:'+54 9 2252 400302',serviceId:'s2',factor:1,label:'Normal',arrival:arr2,status:'waiting',appointmentId:'',sharedAppointmentId:'',source:'demo',businessDate:TODAY};
+  data.appointments=[upcoming];
+  data.queue=[attending,waiting];
+
+  localStorage.setItem(KEY,JSON.stringify(data));
+  await sharedPost('/api/owner/appointment-upsert',{
+   id:'demo-ap-upcoming',serviceId:upcoming.serviceId,date:upcoming.date,time:upcoming.time,status:'confirmed',
+   price:upcoming.price,clientName:'Nicolás R.',clientPhone:'+54 9 2252 400303',note:''
+  });
+  await sharedPost('/api/owner/queue-upsert',queueSharedPayload(attending));
+  await sharedPost('/api/owner/queue-upsert',queueSharedPayload(waiting));
+  if(c.enabled&&c.ownerSecret&&!c.deviceToken)await syncOnlineBusiness(false);
+  selected=null;tab='today';agendaDate=TODAY;applyTheme();render();
+  alert('Demo comercial lista: Juan P. atendiendo, Pedro G. esperando y Nicolás R. con próximo turno.');
+  const clean=new URL(location.href);clean.searchParams.delete('prepDemo');history.replaceState(appHistoryState(),'',clean.toString());
+ }catch(e){
+  alert('No pude preparar la demo: '+String(e.message||e));
+ }
+}
+
 function backup(){const blob=new Blob([JSON.stringify({version:6,profile:'barber',exportedAt:new Date().toISOString(),...data},null,2)],{type:'application/json'});const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=`mi-negocio-respaldo-${TODAY}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 function restore(e){const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{data=migrate(JSON.parse(rd.result));applyTheme();save();selected=null;render();alert('Respaldo restaurado.')}catch(_){alert('No pude leer ese respaldo.')}};rd.readAsText(f)}
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;render()});
@@ -954,6 +1018,7 @@ if(location.protocol!=='file:')history.replaceState(appHistoryState(),'',locatio
 
 window.addEventListener('storage',e=>{if(e.key===KEY&&e.newValue){try{data=migrate(JSON.parse(e.newValue));applyTheme();render()}catch(_){}}});
 setTimeout(async()=>{const c=onlineCfg();if(c.backendUrl){if(c.enabled)pullOnlineBookings(false);if(c.enabled&&c.ownerSecret&&!c.deviceToken)syncOnlineBusiness(false);await syncSharedOperationsCycle()}},1200);
+if(new URLSearchParams(location.search).get('prepDemo')==='1')setTimeout(()=>prepareCommercialDemo(),2200);
 setInterval(()=>{const c=onlineCfg();if(c.enabled&&c.backendUrl&&document.visibilityState==='visible')pullOnlineBookings(false)},60000);
 setInterval(()=>syncSharedOperationsCycle(),8000);
 window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncSharedOperationsCycle()});
