@@ -670,7 +670,8 @@ async function pullSharedOperations(show=false){
   const res=await r.json(),bookings=Array.isArray(res.bookings)?res.bookings:[],queue=Array.isArray(res.queue)?res.queue:[];
   for(const b of bookings){
    const srv=service(b.serviceId);if(!srv)continue;
-   const existingAp=appointmentBySharedId(b.id);
+   const foundAp=appointmentBySharedId(b.id);
+   const existingAp=foundAp?.source==='demo'?null:foundAp;
    const cid=['pending','confirmed','completed'].includes(String(b.status||''))?ensureSharedClient(b.clientName||'Cliente',b.clientPhone||''):(existingAp?.clientId||null);
    let a=existingAp;
    if(!a){
@@ -982,13 +983,11 @@ async function prepareCommercialDemo(){
   const round15=n=>Math.ceil(n/15)*15;
   const hmToMin=v=>{const [h,m]=String(v||'00:00').split(':').map(Number);return (Number(h)||0)*60+(Number(m)||0)};
   const minToHm=v=>`${pad(Math.floor(Math.max(0,Math.min(1439,Number(v)||0))/60))}:${pad(Math.max(0,Math.min(1439,Number(v)||0))%60)}`;
-  let apMin=round15(mins+60);
-  const close=hmToMin(c.closeTime||'19:00');
-  if(apMin+30>close)apMin=Math.max(hmToMin(c.openTime||'09:00'),close-30);
+  let apMin=round15(mins+30);
   const apTime=minToHm(apMin);
   const arr1=minToHm(Math.max(0,mins-8)),arr2=minToHm(Math.max(0,mins-3));
 
-  const upcoming={id:'demo-ap-upcoming',clientId:'demo_c3',walkInName:'',serviceId:'s1',date:TODAY,time:apTime,status:'confirmed',price:Number(service('s1')?.price||9000),factor:1,label:'Normal',consumed:false,paidAmount:0,depositAmount:0,paymentStatus:'pending',accountId:'a1',note:'',waConfirmSentAt:'',waReminderSentAt:'',source:'demo',onlineBookingId:'',requestedAt:nowIso()};
+  const upcoming={id:'demo-local-upcoming-'+TODAY,clientId:'demo_c3',walkInName:'',serviceId:'s1',date:TODAY,time:apTime,status:'confirmed',price:Number(service('s1')?.price||9000),factor:1,label:'Normal',consumed:false,paidAmount:0,depositAmount:0,paymentStatus:'pending',accountId:'a1',note:'',waConfirmSentAt:'',waReminderSentAt:'',source:'demo',onlineBookingId:'',requestedAt:nowIso()};
   const attending={id:'demo-q-attending',clientId:'demo_c1',name:'',phone:'+54 9 2252 400301',serviceId:'s3',factor:1,label:'Normal',arrival:arr1,status:'in_service',appointmentId:'',sharedAppointmentId:'',source:'demo',businessDate:TODAY};
   const waiting={id:'demo-q-waiting',clientId:'demo_c2',name:'',phone:'+54 9 2252 400302',serviceId:'s2',factor:1,label:'Normal',arrival:arr2,status:'waiting',appointmentId:'',sharedAppointmentId:'',source:'demo',businessDate:TODAY};
   data.appointments=[upcoming];
