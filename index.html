@@ -622,7 +622,7 @@ async function pushSharedOperations(show=false){
  if(!sharedOpsReady()||sharedOpsBusy)return false;
  sharedOpsBusy=true;
  try{
-  const aps=data.appointments.filter(a=>a.date>=TODAY&&['pending','confirmed','cancelled','no_show','completed'].includes(a.status));
+  const aps=data.appointments.filter(a=>a.source!=='demo'&&a.date>=TODAY&&['pending','confirmed','cancelled','no_show','completed'].includes(a.status));
   for(const a of aps){
    const cl=client(a.clientId),sharedId=sharedAppointmentId(a);
    const res=await sharedPost('/api/owner/appointment-upsert',{
@@ -988,20 +988,15 @@ async function prepareCommercialDemo(){
   const apTime=minToHm(apMin);
   const arr1=minToHm(Math.max(0,mins-8)),arr2=minToHm(Math.max(0,mins-3));
 
-  const upcoming={id:'demo-ap-upcoming',clientId:'demo_c3',walkInName:'',serviceId:'s1',date:TODAY,time:apTime,status:'confirmed',price:Number(service('s1')?.price||9000),factor:1,label:'Normal',consumed:false,paidAmount:0,depositAmount:0,paymentStatus:'pending',accountId:'a1',note:'',waConfirmSentAt:'',waReminderSentAt:'',source:'local',onlineBookingId:'demo-ap-upcoming',requestedAt:nowIso()};
+  const upcoming={id:'demo-ap-upcoming',clientId:'demo_c3',walkInName:'',serviceId:'s1',date:TODAY,time:apTime,status:'confirmed',price:Number(service('s1')?.price||9000),factor:1,label:'Normal',consumed:false,paidAmount:0,depositAmount:0,paymentStatus:'pending',accountId:'a1',note:'',waConfirmSentAt:'',waReminderSentAt:'',source:'demo',onlineBookingId:'',requestedAt:nowIso()};
   const attending={id:'demo-q-attending',clientId:'demo_c1',name:'',phone:'+54 9 2252 400301',serviceId:'s3',factor:1,label:'Normal',arrival:arr1,status:'in_service',appointmentId:'',sharedAppointmentId:'',source:'demo',businessDate:TODAY};
   const waiting={id:'demo-q-waiting',clientId:'demo_c2',name:'',phone:'+54 9 2252 400302',serviceId:'s2',factor:1,label:'Normal',arrival:arr2,status:'waiting',appointmentId:'',sharedAppointmentId:'',source:'demo',businessDate:TODAY};
   data.appointments=[upcoming];
   data.queue=[attending,waiting];
 
   localStorage.setItem(KEY,JSON.stringify(data));
-  await sharedPost('/api/owner/appointment-upsert',{
-   id:'demo-ap-upcoming',serviceId:upcoming.serviceId,date:upcoming.date,time:upcoming.time,status:'confirmed',
-   price:upcoming.price,clientName:'Nicolás R.',clientPhone:'+54 9 2252 400303',note:''
-  });
   await sharedPost('/api/owner/queue-upsert',queueSharedPayload(attending));
   await sharedPost('/api/owner/queue-upsert',queueSharedPayload(waiting));
-  if(c.enabled&&c.ownerSecret&&!c.deviceToken)await syncOnlineBusiness(false);
   selected=null;tab='today';agendaDate=TODAY;applyTheme();render();
   alert('Demo comercial lista: Juan P. atendiendo, Pedro G. esperando y Nicolás R. con próximo turno.');
   const clean=new URL(location.href);clean.searchParams.delete('prepDemo');history.replaceState(appHistoryState(),'',clean.toString());
