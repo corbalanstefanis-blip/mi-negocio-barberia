@@ -695,6 +695,18 @@ async function pullSharedOperations(show=false){
   }
   const localToday=data.queue.filter(q=>(q.businessDate||TODAY)===TODAY),nowMs=Date.now();
   const locallyCompletedQueueIds=new Set(JSON.parse(localStorage.getItem('mn_completed_queue_ids')||'[]'));
+  // Reconcile queue entries completed before the local completion marker existed.
+  const legacyCompleted=queue.filter(q=>['waiting','in_service'].includes(q.status)&&!locallyCompletedQueueIds.has(String(q.id))).filter(q=>{
+   const matches=data.appointments.filter(a=>a.walkIn&&a.status==='completed'&&a.consumed&&a.date===q.businessDate&&a.serviceId===q.serviceId&&a.time===q.arrival&&data.logs.some(l=>l.appointmentId===a.id));
+   return matches.some(a=>{const cl=client(a.clientId);return cl&&String(cl.name||'').trim().toLowerCase()===String(q.clientName||'').trim().toLowerCase()});
+  });
+  for(const q of legacyCompleted){
+   try{
+    await sharedPost('/api/owner/queue-upsert',{id:String(q.id),appointmentId:q.appointmentId||'',clientName:q.clientName||'',clientPhone:q.clientPhone||'',serviceId:q.serviceId,arrival:q.arrival||'',status:'done',source:q.source||'shared',businessDate:q.businessDate||TODAY});
+    locallyCompletedQueueIds.add(String(q.id));
+   }catch(e){sharedOpsLastError=String(e.message||e)}
+  }
+  if(legacyCompleted.length)localStorage.setItem('mn_completed_queue_ids',JSON.stringify([...locallyCompletedQueueIds]));
   const remoteQueue=queue.filter(q=>['waiting','in_service'].includes(q.status)&&!locallyCompletedQueueIds.has(String(q.id))).map(q=>{
    const linked=q.appointmentId?appointmentBySharedId(q.appointmentId):null;
    const cid=linked?.clientId||queueClientId(q.clientName||'',q.clientPhone||'');
