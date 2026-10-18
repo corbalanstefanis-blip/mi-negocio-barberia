@@ -919,7 +919,22 @@ async function markAppointmentArrived(apId){
  if(appointmentOk)a.localDirtyUntil=0;
  localStorage.setItem(KEY,JSON.stringify(data));
 }
-function queueStatus(qId,status){const q=data.queue.find(x=>x.id===qId);if(!q)return;q.status=status;q.localDirtyUntil=Date.now()+30000;localStorage.setItem(KEY,JSON.stringify(data));render();pushQueueItemNow(q).then(ok=>{if(!ok)console.warn('No se pudo sincronizar la fila inmediatamente');else{q.localDirtyUntil=0;localStorage.setItem(KEY,JSON.stringify(data))}})}
+const queueStatusPending=new Set();
+async function queueStatus(qId,status){
+ const q=data.queue.find(x=>x.id===qId);if(!q||queueStatusPending.has(qId))return;
+ queueStatusPending.add(qId);
+ try{
+  if(sharedOpsReady()){
+   const res=await sharedPost('/api/owner/queue-upsert',{...queueSharedPayload(q),status});
+   q.updatedAt=res?.updatedAt||q.updatedAt;
+  }else if(onlineCfg().backendUrl){
+   alert('No se pudo verificar la conexión de la fila. El estado no cambió.');return;
+  }
+  q.status=status;q.localDirtyUntil=0;
+  localStorage.setItem(KEY,JSON.stringify(data));render();
+ }catch(e){sharedOpsLastError=String(e.message||e);alert('No se pudo guardar el cambio de estado en la fila: '+sharedOpsLastError)}
+ finally{queueStatusPending.delete(qId)}
+}
 function closeModal(){$('#modal').innerHTML='';if(location.protocol!=='file:'&&history.state?.miNegocioModal)history.replaceState(appHistoryState(),'',location.href)}
 
 function bind(){
