@@ -673,8 +673,11 @@ async function pullSharedOperations(show=false){
   const hiddenOnlineIds=new Set(JSON.parse(localStorage.getItem('mn_hidden_online_'+cleanSlug(c.slug))||'[]'));
   const serverIds=new Set(bookings.map(b=>String(b.id)));
   const inactiveIds=new Set(bookings.filter(b=>['cancelled','no_show'].includes(String(b.status))).map(b=>String(b.id)));
-  data.appointments=data.appointments.filter(a=>!a.onlineBookingId||(!inactiveIds.has(String(a.onlineBookingId))&&!hiddenOnlineIds.has(String(a.onlineBookingId))));
-  data.appointments=data.appointments.filter(a=>!a.onlineBookingId||serverIds.has(String(a.onlineBookingId))||a.source==='manual');
+  // Never discard a locally paid appointment solely because the remote agenda omits it.
+  // Payments and material records are device-local and must remain auditable.
+  const hasLocalFinancialHistory=a=>Number(a.paidAmount||0)>0||Number(a.depositAmount||0)>0||a.consumed===true||data.txns.some(t=>t.appointmentId===a.id)||data.logs.some(l=>l.appointmentId===a.id);
+  data.appointments=data.appointments.filter(a=>!a.onlineBookingId||hasLocalFinancialHistory(a)||(!inactiveIds.has(String(a.onlineBookingId))&&!hiddenOnlineIds.has(String(a.onlineBookingId))));
+  data.appointments=data.appointments.filter(a=>!a.onlineBookingId||hasLocalFinancialHistory(a)||serverIds.has(String(a.onlineBookingId))||a.source==='manual');
   for(const b of bookings){
    if(['cancelled','no_show'].includes(String(b.status)))continue;
    if(hiddenOnlineIds.has(String(b.id))&&['cancelled','no_show'].includes(String(b.status)))continue;
