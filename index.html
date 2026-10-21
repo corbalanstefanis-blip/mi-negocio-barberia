@@ -333,6 +333,77 @@ button.row:active{background:var(--paper)}
  .btn{padding:10px 9px}
  .stats{gap:5px}
 }
+
+/* ==============================================================
+   DISEÑO METÁLICO · VISTA DE PRUEBA · 21/10/2026
+   Exclusivamente CSS: no modifica reservas, caja ni persistencia.
+   Clásico = azul y rojo metálicos; sober = carbón y acero.
+   ============================================================== */
+:root {
+  --metal-blue:linear-gradient(145deg,#6aa0c9 0%,#264f83 18%,#112d52 49%,#376e9f 78%,#a6d5ef 100%);
+  --metal-red:linear-gradient(145deg,#ffaaa1 0%,#c84640 18%,#781c25 50%,#bf3a3d 78%,#f6a29a 100%);
+  --metal-silver:linear-gradient(140deg,#fafafa 0%,#b5bbc1 18%,#646d76 46%,#e4e7ea 75%,#828c96 100%);
+  --metal-edge:rgba(175,199,218,.38);
+}
+:root[data-theme="sober"] {
+  --paper:#080a0d; --bg:#0d1014; --card:#15191f;
+  --line:#343b43; --ink:#f1f3f4; --ink-soft:#adb7c0;
+  --shadow:0 18px 48px rgba(0,0,0,.52);
+  --barber-blue:#d5dde5;
+}
+:root[data-theme="classic"] {
+  --paper:#e7e9ed; --bg:#f6f7f9; --card:#fff;
+  --line:#c9d2dc; --ink:#172332; --ink-soft:#5c6c7d;
+  --shadow:0 18px 40px rgba(19,39,67,.16);
+}
+.phone{box-shadow:var(--shadow),inset 0 0 0 1px rgba(255,255,255,.08)}
+.topStatus{letter-spacing:.035em}
+:root[data-theme="sober"] .topStatus::before{background:linear-gradient(90deg,#59626a,#e8edf1 25%,#65707b 49%,#dfe5ea 73%,#49525c);height:3px}
+:root[data-theme="classic"] .topStatus::before{background:linear-gradient(90deg,#183d69,#6fa4d1 24%,#f5f7fa 45%,#ad2b36 65%,#ef8b85 85%,#7b1824);height:3px}
+.card,.row,.action,.mini,.account,.report,.backupBox,.recipeBox{
+  background-image:linear-gradient(155deg,rgba(255,255,255,.085),transparent 38%,rgba(0,0,0,.055) 100%);
+  border-color:var(--line);
+  box-shadow:0 6px 16px rgba(5,14,27,.07),inset 0 1px 0 rgba(255,255,255,.13);
+}
+:root[data-theme="sober"] .card,
+:root[data-theme="sober"] .row,
+:root[data-theme="sober"] .action,
+:root[data-theme="sober"] .mini,
+:root[data-theme="sober"] .account,
+:root[data-theme="sober"] .report,
+:root[data-theme="sober"] .backupBox,
+:root[data-theme="sober"] .recipeBox{
+  background-image:linear-gradient(145deg,rgba(255,255,255,.09),rgba(255,255,255,.012) 45%,rgba(0,0,0,.23));
+  border-color:#3a424b;
+  box-shadow:0 8px 20px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.09);
+}
+:root[data-theme="sober"] .header{background:linear-gradient(165deg,rgba(196,206,215,.09),transparent 65%)}
+:root[data-theme="classic"] .header{background:linear-gradient(160deg,rgba(58,113,162,.10),transparent 65%)}
+.btn.dark,.subtab.active,.nav button.active .navIcon{background:var(--metal-blue);color:#fff;border-color:#446d97;text-shadow:0 1px 2px rgba(0,0,0,.4);box-shadow:inset 0 1px 0 rgba(255,255,255,.36),0 4px 10px rgba(14,40,76,.2)}
+.btn.red,.fab{background:var(--metal-red);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 7px 17px rgba(86,15,22,.26)}
+:root[data-theme="sober"] .btn.dark,
+:root[data-theme="sober"] .subtab.active,
+:root[data-theme="sober"] .nav button.active .navIcon,
+:root[data-theme="sober"] .fab{
+  background:var(--metal-silver);color:#111820;border-color:#8d98a4;
+  text-shadow:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 6px 16px rgba(0,0,0,.4);
+}
+.actionIcon{background:var(--metal-blue);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 3px 9px rgba(0,0,0,.2)}
+.action:nth-child(2n) .actionIcon{background:var(--metal-red)}
+.action:nth-child(3n) .actionIcon{background:var(--metal-blue)}
+:root[data-theme="sober"] .actionIcon,
+:root[data-theme="sober"] .action:nth-child(2n) .actionIcon,
+:root[data-theme="sober"] .action:nth-child(3n) .actionIcon{
+  background:var(--metal-silver);color:#101820;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 4px 10px rgba(0,0,0,.35);
+}
+.nav{box-shadow:0 -5px 18px rgba(0,0,0,.06)}
+:root[data-theme="sober"] .nav{background:linear-gradient(180deg,#1d2228,#0f1318)}
+:root[data-theme="classic"] .nav{background:linear-gradient(180deg,#fff,#e7edf3)}
+.btn,.action,.subtab,.fab,.nav button{transition:filter .15s ease,transform .1s ease}
+.btn:active,.action:active,.subtab:active{filter:brightness(1.08);transform:translateY(1px)}
+@media(prefers-reduced-motion:reduce){.btn,.action,.subtab,.fab,.nav button{transition:none}}
+
 </style>
 <link rel="manifest" href="./manifest.webmanifest" />
 <meta name="theme-color" content="#203F68" />
