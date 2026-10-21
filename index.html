@@ -333,6 +333,133 @@ button.row:active{background:var(--paper)}
  .btn{padding:10px 9px}
  .stats{gap:5px}
 }
+/* ==============================================================
+   DISEÑO METÁLICO · VISTA DE PRUEBA · 21/10/2026
+   Exclusivamente CSS: no modifica reservas, caja ni persistencia.
+   Clásico = azul y rojo metálicos; sober = carbón y acero.
+   ============================================================== */
+:root {
+  --metal-blue:linear-gradient(145deg,#6aa0c9 0%,#264f83 18%,#112d52 49%,#376e9f 78%,#a6d5ef 100%);
+  --metal-red:linear-gradient(145deg,#ffaaa1 0%,#c84640 18%,#781c25 50%,#bf3a3d 78%,#f6a29a 100%);
+  --metal-silver:linear-gradient(140deg,#fafafa 0%,#b5bbc1 18%,#646d76 46%,#e4e7ea 75%,#828c96 100%);
+  --metal-edge:rgba(175,199,218,.38);
+}
+:root[data-theme="sober"] {
+  --paper:#080a0d; --bg:#0d1014; --card:#15191f;
+  --line:#343b43; --ink:#f1f3f4; --ink-soft:#adb7c0;
+  --shadow:0 18px 48px rgba(0,0,0,.52);
+  --barber-blue:#d5dde5;
+}
+:root[data-theme="classic"] {
+  --paper:#e7e9ed; --bg:#f6f7f9; --card:#fff;
+  --line:#c9d2dc; --ink:#172332; --ink-soft:#5c6c7d;
+  --shadow:0 18px 40px rgba(19,39,67,.16);
+}
+.phone{box-shadow:var(--shadow),inset 0 0 0 1px rgba(255,255,255,.08)}
+.topStatus{letter-spacing:.035em}
+:root[data-theme="sober"] .topStatus::before{background:linear-gradient(90deg,#59626a,#e8edf1 25%,#65707b 49%,#dfe5ea 73%,#49525c);height:3px}
+:root[data-theme="classic"] .topStatus::before{background:linear-gradient(90deg,#183d69,#6fa4d1 24%,#f5f7fa 45%,#ad2b36 65%,#ef8b85 85%,#7b1824);height:3px}
+.card,.row,.action,.mini,.account,.report,.backupBox,.recipeBox{
+  background-image:linear-gradient(155deg,rgba(255,255,255,.085),transparent 38%,rgba(0,0,0,.055) 100%);
+  border-color:var(--line);
+  box-shadow:0 6px 16px rgba(5,14,27,.07),inset 0 1px 0 rgba(255,255,255,.13);
+}
+:root[data-theme="sober"] .card,
+:root[data-theme="sober"] .row,
+:root[data-theme="sober"] .action,
+:root[data-theme="sober"] .mini,
+:root[data-theme="sober"] .account,
+:root[data-theme="sober"] .report,
+:root[data-theme="sober"] .backupBox,
+:root[data-theme="sober"] .recipeBox{
+  background-image:linear-gradient(145deg,rgba(255,255,255,.09),rgba(255,255,255,.012) 45%,rgba(0,0,0,.23));
+  border-color:#3a424b;
+  box-shadow:0 8px 20px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.09);
+}
+:root[data-theme="sober"] .header{background:linear-gradient(165deg,rgba(196,206,215,.09),transparent 65%)}
+:root[data-theme="classic"] .header{background:linear-gradient(160deg,rgba(58,113,162,.10),transparent 65%)}
+.btn.dark,.subtab.active,.nav button.active .navIcon{background:var(--metal-blue);color:#fff;border-color:#446d97;text-shadow:0 1px 2px rgba(0,0,0,.4);box-shadow:inset 0 1px 0 rgba(255,255,255,.36),0 4px 10px rgba(14,40,76,.2)}
+.btn.red,.fab{background:var(--metal-red);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 7px 17px rgba(86,15,22,.26)}
+:root[data-theme="sober"] .btn.dark,
+:root[data-theme="sober"] .subtab.active,
+:root[data-theme="sober"] .nav button.active .navIcon,
+:root[data-theme="sober"] .fab{
+  background:var(--metal-silver);color:#111820;border-color:#8d98a4;
+  text-shadow:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 6px 16px rgba(0,0,0,.4);
+}
+.actionIcon{background:var(--metal-blue);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 3px 9px rgba(0,0,0,.2)}
+.action:nth-child(2n) .actionIcon{background:var(--metal-red)}
+.action:nth-child(3n) .actionIcon{background:var(--metal-blue)}
+:root[data-theme="sober"] .actionIcon,
+:root[data-theme="sober"] .action:nth-child(2n) .actionIcon,
+:root[data-theme="sober"] .action:nth-child(3n) .actionIcon{
+  background:var(--metal-silver);color:#101820;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 4px 10px rgba(0,0,0,.35);
+}
+.nav{box-shadow:0 -5px 18px rgba(0,0,0,.06)}
+:root[data-theme="sober"] .nav{background:linear-gradient(180deg,#1d2228,#0f1318)}
+:root[data-theme="classic"] .nav{background:linear-gradient(180deg,#fff,#e7edf3)}
+.btn,.action,.subtab,.fab,.nav button{transition:filter .15s ease,transform .1s ease}
+.btn:active,.action:active,.subtab:active{filter:brightness(1.08);transform:translateY(1px)}
+@media(prefers-reduced-motion:reduce){.btn,.action,.subtab,.fab,.nav button{transition:none}}
+
+
+/* Tres variantes metálicas independientes; Clásico y Carbón permanecen. */
+:root[data-theme="emerald"],:root[data-theme="blue-metal"],:root[data-theme="red-metal"]{
+ --ink:#f3f7f8;--ink-soft:#b1c2c9;--card:#101b22;--line:#34515a;
+ --paper:#050e14;--bg:#08151b;--shadow:0 18px 48px rgba(0,0,0,.55);
+ --barber-blue:#48d9bf;--barber-red:#aebfc6;--dark:#c4d7da;
+ --amber:#29302a;--amberText:#f4dcaa;--green:#153d33;--greenText:#9fe5cb;
+ --red:#3a2229;--redText:#f4b4b9;--blue:#18333c;--blueText:#c3eaf1;--stone:#1c3038;
+ --metal-accent:linear-gradient(145deg,#c6fff1 0%,#2fb9a5 17%,#076c66 50%,#0b3c3c 74%,#7ef5d9 100%);
+ --metal-accent-text:#ffffff;
+}
+:root[data-theme="blue-metal"]{
+ --paper:#050d1b;--bg:#071326;--card:#0e2036;--line:#2e4b69;--barber-blue:#77c9ff;
+ --blue:#182d4a;--blueText:#c7e5ff;--green:#17392f;--greenText:#a2efc7;
+ --metal-accent:linear-gradient(145deg,#d3f3ff 0%,#3199e5 17%,#09569c 48%,#09294f 75%,#77d5ff 100%);
+}
+:root[data-theme="red-metal"]{
+ --paper:#15070b;--bg:#1d0b10;--card:#261318;--line:#63414b;--barber-blue:#ff858d;
+ --red:#48252c;--redText:#ffc0c5;--blue:#352831;--blueText:#f0cdd5;
+ --metal-accent:linear-gradient(145deg,#ffd2d0 0%,#f15a61 18%,#a32236 49%,#5c1424 75%,#f99ba0 100%);
+}
+:root[data-theme="emerald"] .topStatus::before,
+:root[data-theme="blue-metal"] .topStatus::before,
+:root[data-theme="red-metal"] .topStatus::before{background:var(--metal-accent);height:3px}
+:root[data-theme="emerald"] .card,:root[data-theme="emerald"] .row,:root[data-theme="emerald"] .action,
+:root[data-theme="blue-metal"] .card,:root[data-theme="blue-metal"] .row,:root[data-theme="blue-metal"] .action,
+:root[data-theme="red-metal"] .card,:root[data-theme="red-metal"] .row,:root[data-theme="red-metal"] .action{
+ background-image:linear-gradient(145deg,rgba(255,255,255,.105),transparent 44%,rgba(0,0,0,.3));
+ border-color:var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 8px 22px rgba(0,0,0,.27);
+}
+:root[data-theme="emerald"] .btn.dark,:root[data-theme="emerald"] .subtab.active,:root[data-theme="emerald"] .nav button.active .navIcon,:root[data-theme="emerald"] .fab,
+:root[data-theme="blue-metal"] .btn.dark,:root[data-theme="blue-metal"] .subtab.active,:root[data-theme="blue-metal"] .nav button.active .navIcon,:root[data-theme="blue-metal"] .fab,
+:root[data-theme="red-metal"] .btn.dark,:root[data-theme="red-metal"] .subtab.active,:root[data-theme="red-metal"] .nav button.active .navIcon,:root[data-theme="red-metal"] .fab{
+ background:var(--metal-accent);color:var(--metal-accent-text);border-color:var(--line);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 5px 14px rgba(0,0,0,.3);
+}
+:root[data-theme="emerald"] .actionIcon,:root[data-theme="emerald"] .action:nth-child(2n) .actionIcon,:root[data-theme="emerald"] .action:nth-child(3n) .actionIcon,
+:root[data-theme="blue-metal"] .actionIcon,:root[data-theme="blue-metal"] .action:nth-child(2n) .actionIcon,:root[data-theme="blue-metal"] .action:nth-child(3n) .actionIcon,
+:root[data-theme="red-metal"] .actionIcon,:root[data-theme="red-metal"] .action:nth-child(2n) .actionIcon,:root[data-theme="red-metal"] .action:nth-child(3n) .actionIcon{
+ background:var(--metal-accent);color:#fff;
+}
+:root[data-theme="emerald"] .nav,:root[data-theme="blue-metal"] .nav,:root[data-theme="red-metal"] .nav{background:linear-gradient(180deg,var(--card),var(--bg))}
+:root[data-theme="emerald"] .nav button.active,:root[data-theme="blue-metal"] .nav button.active,:root[data-theme="red-metal"] .nav button.active{color:var(--ink)}
+:root[data-theme="emerald"] .header,:root[data-theme="blue-metal"] .header,:root[data-theme="red-metal"] .header{background:linear-gradient(150deg,rgba(255,255,255,.08),transparent 65%)}
+.themePreview.emerald,.themePreview.blue-metal,.themePreview.red-metal{background:#0c1820;border-color:#49616b}
+.themePreview.emerald{background:linear-gradient(140deg,#123a35,#061719)}
+.themePreview.blue-metal{background:linear-gradient(140deg,#15395c,#071327)}
+.themePreview.red-metal{background:linear-gradient(140deg,#51202b,#16070d)}
+.themePreview.emerald::before{background:linear-gradient(90deg,#073e3c,#b3fff0,#066c65)}
+.themePreview.blue-metal::before{background:linear-gradient(90deg,#0b3663,#b0e8ff,#1253a0)}
+.themePreview.red-metal::before{background:linear-gradient(90deg,#661526,#ffc4c0,#a32335)}
+.themePreview.emerald .themeMiniTitle,.themePreview.blue-metal .themeMiniTitle,.themePreview.red-metal .themeMiniTitle{background:#e5edf0}
+.themePreview.emerald .themeMiniCard,.themePreview.blue-metal .themeMiniCard,.themePreview.red-metal .themeMiniCard{background:rgba(255,255,255,.04);border-color:#55707b}
+.themePreview.emerald .themeSwatches i:nth-child(1){background:#074d48}.themePreview.emerald .themeSwatches i:nth-child(2){background:#36c5af}.themePreview.emerald .themeSwatches i:nth-child(3){background:#a8f6e6}
+.themePreview.blue-metal .themeSwatches i:nth-child(1){background:#12365c}.themePreview.blue-metal .themeSwatches i:nth-child(2){background:#2d93d9}.themePreview.blue-metal .themeSwatches i:nth-child(3){background:#b2e7ff}
+.themePreview.red-metal .themeSwatches i:nth-child(1){background:#5e1b2a}.themePreview.red-metal .themeSwatches i:nth-child(2){background:#c73747}.themePreview.red-metal .themeSwatches i:nth-child(3){background:#ffb6b3}
+
 </style>
 <link rel="manifest" href="./manifest.webmanifest" />
 <meta name="theme-color" content="#203F68" />
@@ -421,11 +548,11 @@ function migrate(raw){
 function load(){try{const raw=localStorage.getItem(KEY)||localStorage.getItem(OLD_KEY);return migrate(raw?JSON.parse(raw):null)}catch(_){return fresh()}}
 let data=load(),tab='today',sub='appointments',selected=null,agendaDate=TODAY,reportPeriod='month',installPrompt=null;
 function applyTheme(theme=data.settings.theme||'classic'){
- const chosen=theme==='sober'?'sober':'classic';
+ const chosen=['classic','sober','emerald','blue-metal','red-metal'].includes(theme)?theme:'classic';
  data.settings.theme=chosen;
  document.documentElement.dataset.theme=chosen;
  const meta=document.querySelector('meta[name="theme-color"]');
- if(meta)meta.setAttribute('content',chosen==='sober'?'#111111':'#203F68');
+ if(meta)meta.setAttribute('content',({sober:'#101318',emerald:'#061e1c','blue-metal':'#06182b','red-metal':'#25090e',classic:'#203F68'})[chosen]);
 }
 function setTheme(theme){applyTheme(theme);save();render()}
 const tomorrow=()=>{const d=new Date();d.setDate(d.getDate()+1);return iso(d)};
@@ -864,7 +991,7 @@ function waitPanel(){return `<section class="section"><button class="btn dark fu
 function servicesPanel(){return `<section class="section"><button class="btn dark full" data-open="service">+ Nuevo servicio</button></section><section class="section"><div class="list">${data.services.length?data.services.map(s=>`<div class="card"><div class="flexBetween"><div><div class="rowTitle">${esc(s.name)}</div><div class="rowSub">${s.duration} min · material base ${money(serviceMaterialCost(s.id,1))} · ${marginInfo(s).pct}% del precio</div><div class="rowSub">Reserva online: ${s.onlineEnabled!==false?'sí':'no'} · ${s.allowOverbook?`sobreturno hasta ${Math.max(1,Number(s.maxConcurrent||1))} simultáneos`:'sin sobreturno'}</div></div><b>${money(s.price)}</b></div><div class="btnRow"><button class="btn gray" data-edit-service="${s.id}">Editar</button><button class="btn red" data-delete-service="${s.id}">Eliminar</button></div></div>`).join(''):'<div class="empty">No hay servicios.</div>'}</div></section>`}
 function inventoryPanel(){return `<section class="section"><button class="btn dark full" data-open="inventory">+ Nuevo insumo</button></section><section class="section"><div class="list">${data.inventory.length?data.inventory.map(i=>`<div class="card"><div class="flexBetween"><div><div class="rowTitle">${esc(i.name)}</div><div class="rowSub">Stock ${fqty(i.stock)} ${esc(i.unit)} · mínimo ${fqty(i.min)} · ${money(i.costUnit)}/${esc(i.unit)}${i.costChange&&!i.costChange.ack?` · ↑ costo pendiente de revisar`:''}</div></div><span class="pill ${Number(i.stock)<=Number(i.min)?'no_show':'confirmed'}">${Number(i.stock)<=Number(i.min)?'Stock bajo':'OK'}</span></div><div class="btnRow"><button class="btn green" data-restock="${i.id}">Reponer</button><button class="btn gray" data-edit-inventory="${i.id}">Editar</button><button class="btn red" data-delete-inventory="${i.id}">Eliminar</button></div></div>`).join(''):'<div class="empty">No hay insumos.</div>'}</div></section>`}
 function moneyView(){const bal=balanceByAccount(),total=Object.values(bal).reduce((s,v)=>s+v,0),rq=receivables();return `<header class="header"><h1>Plata</h1></header><section class="section"><div class="card"><div class="heroLabel">Dinero actual</div><div class="heroValue">${money(total)}</div></div></section><section class="section"><div class="moneyAccounts">${accounts.map(a=>`<div class="account"><span>${esc(a.name)}</span><strong>${money(bal[a.id]||0)}</strong></div>`).join('')}</div></section><section class="section"><div class="two"><button class="btn green" data-open="income">+ Ingreso</button><button class="btn red" data-open="expense">+ Gasto</button></div></section><section class="section"><h2>Por cobrar</h2><div class="list">${rq.length?rq.map(a=>`<div class="card"><div class="flexBetween"><div><div class="rowTitle">${esc(client(a.clientId)?.name||a.walkInName||'Cliente')}</div><div class="rowSub">${short(a.date)} · ${esc(service(a.serviceId)?.name||'Servicio')}</div></div><b class="dangerText">${money(a.balance)}</b></div><div class="btnRow"><button class="btn green" data-collect="${a.id}">Cobrar saldo</button>${client(a.clientId)?.phone?`<button class="btn green" data-wa-balance="${a.id}">WhatsApp saldo</button>`:''}</div></div>`).join(''):'<div class="empty">No hay saldos pendientes.</div>'}</div></section><section class="section"><h2>Movimientos</h2><div class="list">${data.txns.length?data.txns.slice().sort((a,b)=>`${b.date}-${b.id}`.localeCompare(`${a.date}-${a.id}`)).map(t=>`<div class="card"><div class="flexBetween"><div class="rowMain"><div class="rowTitle">${esc(t.cat)}${t.desc?' · '+esc(t.desc):''}</div><div class="rowSub">${short(t.date)} · ${esc(accounts.find(a=>a.id===t.accountId)?.name||'Cuenta')}${t.source==='deposit'?' · Seña vinculada':''}</div></div><b class="${t.type==='income'?'goodText':'dangerText'}">${t.type==='income'?'+':'−'}${money(t.amount)}</b></div><div class="txnActions"><button class="btn gray compact" data-edit-txn="${t.id}">Editar</button><button class="btn red compact" data-delete-txn="${t.id}">Anular</button></div></div>`).join(''):'<div class="empty">Sin movimientos.</div>'}</div></section>`}
-function moreView(){const range=reportRange(),tx=data.txns.filter(t=>inRange(t.date,range.start,range.end)),inc=tx.filter(t=>t.type==='income').reduce((s,t)=>s+Number(t.amount),0),exp=tx.filter(t=>t.type==='expense').reduce((s,t)=>s+Number(t.amount),0),logs=data.logs.filter(l=>inRange(l.date,range.start,range.end)),mats=logs.reduce((s,l)=>s+Number(l.total||0),0),aps=data.appointments.filter(a=>inRange(a.date,range.start,range.end)),completed=aps.filter(a=>a.status==='completed'),sales=completed.reduce((s,a)=>s+Number(a.price||0),0),grossMargin=sales-mats,rq=completed.map(a=>({...a,balance:Math.max(0,Number(a.price||0)-Number(a.paidAmount||0))})).filter(a=>a.balance>0);const pwaReady=location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1';return `<header class="header"><h1>Más</h1></header><section class="section"><h2>Mi negocio</h2><div class="card"><div class="profileTag">✂ Barbería</div><div class="rowTitle" style="margin-top:10px">${esc(data.settings.businessName)}</div><div class="rowSub">${esc(data.settings.ownerName)}</div><div class="btnRow"><button class="btn dark" data-edit-business>Editar negocio</button></div><div class="note" style="margin-top:9px">Este perfil es la base. Los demás rubros se adaptarán después sin cambiar el motor.</div></div></section><section class="section"><h2>Apariencia</h2><div class="themeGrid"><button class="themeChoice ${data.settings.theme!=='sober'?'active':''}" data-theme-choice="classic"><div class="themePreview classic"><div class="themeMiniTitle"></div><div class="themeMiniCard"></div><div class="themeSwatches"><i></i><i></i><i></i></div></div><span class="themeName">Clásico barbería</span><span class="themeDesc">Rojo · azul · blanco</span></button><button class="themeChoice ${data.settings.theme==='sober'?'active':''}" data-theme-choice="sober"><div class="themePreview sober"><div class="themeMiniTitle"></div><div class="themeMiniCard"></div><div class="themeSwatches"><i></i><i></i><i></i></div></div><span class="themeName">Carbón</span><span class="themeDesc">Carbón · acero · perla</span></button></div><div class="note" style="margin-top:8px">La elección se guarda en este dispositivo y no cambia tus datos ni funciones.</div></section><section class="section"><div class="flexBetween"><h2 style="margin-bottom:0">Reportes</h2><div class="rowSub">${range.label}</div></div><div class="btnRow"><button class="btn ${reportPeriod==='today'?'dark':'gray'}" data-report-period="today">Hoy</button><button class="btn ${reportPeriod==='week'?'dark':'gray'}" data-report-period="week">Semana</button><button class="btn ${reportPeriod==='month'?'dark':'gray'}" data-report-period="month">Mes</button></div><div class="reportGrid" style="margin-top:10px"><div class="report"><strong>${money(inc)}</strong><span>Entradas de caja</span></div><div class="report"><strong>${money(exp)}</strong><span>Salidas de caja</span></div><div class="report"><strong>${money(mats)}</strong><span>Material consumido</span></div><div class="report"><strong>${money(grossMargin)}</strong><span>Margen bruto de trabajos</span></div><div class="report"><strong>${aps.filter(a=>a.status==='no_show').length}</strong><span>No-shows</span></div><div class="report"><strong>${money(rq.reduce((s,a)=>s+a.balance,0))}</strong><span>Por cobrar del período</span></div></div><div class="note" style="margin-top:8px">Caja y costo de materiales se muestran separados. El margen bruto resta materiales de los trabajos, no gastos fijos.</div></section><section class="section"><h2>WhatsApp</h2><div class="backupBox"><div class="installHint"><b>Automatización asistida.</b> La app prepara confirmaciones, recordatorios, lista de espera, seguimiento y saldos. WhatsApp se abre con el texto listo y vos tocás Enviar.</div><div class="note" style="margin-top:8px">El envío totalmente automático en segundo plano requiere WhatsApp Business Platform y un servidor; esta versión no sube datos de tus clientes.</div></div></section><section class="section"><h2>Aplicación</h2><div class="backupBox">${pwaReady?`<div class="installHint">Esta versión está servida desde un entorno compatible con PWA. Si tu navegador lo permite, podés instalarla.</div><div class="btnRow"><button class="btn dark" id="installApp">Instalar aplicación</button></div>`:`<div class="note"><b>Vista local:</b> este archivo funciona con doble clic para probar. La instalación PWA se habilita al publicar el paquete por HTTPS o abrirlo desde localhost.</div>`}</div></section><section class="section"><h2>Datos y respaldo</h2><div class="backupBox"><div class="privacyStrong"><b>Tus datos son tuyos.</b><br>Caja, costos, stock y reportes quedan en este dispositivo. Si activás reservas online, solo se transmiten los datos mínimos necesarios del turno para que pueda llegar desde otro celular.</div><div class="btnRow"><button class="btn dark" id="backup">Descargar respaldo</button><label class="btn gray" style="display:inline-block">Restaurar<input id="restore" type="file" accept="application/json" hidden></label><button class="btn red" id="reset">Reiniciar demo</button></div></div></section>`}
+function moreView(){const range=reportRange(),tx=data.txns.filter(t=>inRange(t.date,range.start,range.end)),inc=tx.filter(t=>t.type==='income').reduce((s,t)=>s+Number(t.amount),0),exp=tx.filter(t=>t.type==='expense').reduce((s,t)=>s+Number(t.amount),0),logs=data.logs.filter(l=>inRange(l.date,range.start,range.end)),mats=logs.reduce((s,l)=>s+Number(l.total||0),0),aps=data.appointments.filter(a=>inRange(a.date,range.start,range.end)),completed=aps.filter(a=>a.status==='completed'),sales=completed.reduce((s,a)=>s+Number(a.price||0),0),grossMargin=sales-mats,rq=completed.map(a=>({...a,balance:Math.max(0,Number(a.price||0)-Number(a.paidAmount||0))})).filter(a=>a.balance>0);const pwaReady=location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1';return `<header class="header"><h1>Más</h1></header><section class="section"><h2>Mi negocio</h2><div class="card"><div class="profileTag">✂ Barbería</div><div class="rowTitle" style="margin-top:10px">${esc(data.settings.businessName)}</div><div class="rowSub">${esc(data.settings.ownerName)}</div><div class="btnRow"><button class="btn dark" data-edit-business>Editar negocio</button></div><div class="note" style="margin-top:9px">Este perfil es la base. Los demás rubros se adaptarán después sin cambiar el motor.</div></div></section><section class="section"><h2>Apariencia</h2><div class="themeGrid"><button class="themeChoice ${data.settings.theme==='classic'?'active':''}" data-theme-choice="classic"><div class="themePreview classic"><div class="themeMiniTitle"></div><div class="themeMiniCard"></div><div class="themeSwatches"><i></i><i></i><i></i></div></div><span class="themeName">Clásico barbería</span><span class="themeDesc">Rojo · azul · blanco</span></button><button class="themeChoice ${data.settings.theme==='sober'?'active':''}" data-theme-choice="sober"><div class="themePreview sober"><div class="themeMiniTitle"></div><div class="themeMiniCard"></div><div class="themeSwatches"><i></i><i></i><i></i></div></div><span class="themeName">Carbón metal</span><span class="themeDesc">Carbón · acero · perla</span></button><button class="themeChoice ${data.settings.theme==='emerald'?'active':''}" data-theme-choice="emerald"><div class="themePreview emerald"><div class="themeMiniTitle"></div><div class="themeMiniCard"></div><div class="themeSwatches"><i></i><i></i><i></i></div></div><span class="themeName">Verde esmeralda</span><span class="themeDesc">Esmeralda · negro · metal</span></button><button class="themeChoice ${data.settings.theme==='blue-metal'?'active':''}" data-theme-choice="blue-metal"><div class="themePreview blue-metal"><div class="themeMiniTitle"></div><div class="themeMiniCard"></div><div class="themeSwatches"><i></i><i></i><i></i></div></div><span class="themeName">Azul metal</span><span class="themeDesc">Azul profundo · acero</span></button><button class="themeChoice ${data.settings.theme==='red-metal'?'active':''}" data-theme-choice="red-metal"><div class="themePreview red-metal"><div class="themeMiniTitle"></div><div class="themeMiniCard"></div><div class="themeSwatches"><i></i><i></i><i></i></div></div><span class="themeName">Rojo metal</span><span class="themeDesc">Rojo rubí · negro</span></button></div><div class="note" style="margin-top:8px">La elección se guarda en este dispositivo y no cambia tus datos ni funciones.</div></section><section class="section"><div class="flexBetween"><h2 style="margin-bottom:0">Reportes</h2><div class="rowSub">${range.label}</div></div><div class="btnRow"><button class="btn ${reportPeriod==='today'?'dark':'gray'}" data-report-period="today">Hoy</button><button class="btn ${reportPeriod==='week'?'dark':'gray'}" data-report-period="week">Semana</button><button class="btn ${reportPeriod==='month'?'dark':'gray'}" data-report-period="month">Mes</button></div><div class="reportGrid" style="margin-top:10px"><div class="report"><strong>${money(inc)}</strong><span>Entradas de caja</span></div><div class="report"><strong>${money(exp)}</strong><span>Salidas de caja</span></div><div class="report"><strong>${money(mats)}</strong><span>Material consumido</span></div><div class="report"><strong>${money(grossMargin)}</strong><span>Margen bruto de trabajos</span></div><div class="report"><strong>${aps.filter(a=>a.status==='no_show').length}</strong><span>No-shows</span></div><div class="report"><strong>${money(rq.reduce((s,a)=>s+a.balance,0))}</strong><span>Por cobrar del período</span></div></div><div class="note" style="margin-top:8px">Caja y costo de materiales se muestran separados. El margen bruto resta materiales de los trabajos, no gastos fijos.</div></section><section class="section"><h2>WhatsApp</h2><div class="backupBox"><div class="installHint"><b>Automatización asistida.</b> La app prepara confirmaciones, recordatorios, lista de espera, seguimiento y saldos. WhatsApp se abre con el texto listo y vos tocás Enviar.</div><div class="note" style="margin-top:8px">El envío totalmente automático en segundo plano requiere WhatsApp Business Platform y un servidor; esta versión no sube datos de tus clientes.</div></div></section><section class="section"><h2>Aplicación</h2><div class="backupBox">${pwaReady?`<div class="installHint">Esta versión está servida desde un entorno compatible con PWA. Si tu navegador lo permite, podés instalarla.</div><div class="btnRow"><button class="btn dark" id="installApp">Instalar aplicación</button></div>`:`<div class="note"><b>Vista local:</b> este archivo funciona con doble clic para probar. La instalación PWA se habilita al publicar el paquete por HTTPS o abrirlo desde localhost.</div>`}</div></section><section class="section"><h2>Datos y respaldo</h2><div class="backupBox"><div class="privacyStrong"><b>Tus datos son tuyos.</b><br>Caja, costos, stock y reportes quedan en este dispositivo. Si activás reservas online, solo se transmiten los datos mínimos necesarios del turno para que pueda llegar desde otro celular.</div><div class="btnRow"><button class="btn dark" id="backup">Descargar respaldo</button><label class="btn gray" style="display:inline-block">Restaurar<input id="restore" type="file" accept="application/json" hidden></label><button class="btn red" id="reset">Reiniciar demo</button></div></div></section>`}
 
 function appHistoryState(extra={}){return {miNegocio:true,tab,sub,selected,agendaDate,...extra}}
 function pushAppState(){if(location.protocol!=='file:')history.pushState(appHistoryState(),'',location.href)}
