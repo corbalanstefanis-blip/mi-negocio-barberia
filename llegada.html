@@ -9,6 +9,63 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap');
 :root{--pearl:#ECEAE5;--red:#BE3C33;--navy:#203F68;--bg:#090A0A;--card:#191C1D;--ink:#F7F7F4;--soft:#B5BAC0;--line:#454B50;--ok:#1E3029;--okText:#BFE5CF;--amber:#2B2A25;--amberText:#F1E7C8}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif}.top{height:5px;background:repeating-linear-gradient(90deg,var(--red) 0 24px,#fff 24px 36px,var(--navy) 36px 60px,#fff 60px 72px)}.wrap{max-width:560px;margin:0 auto;padding:24px 18px 46px}.brand{font-size:12px;color:var(--soft);font-weight:800;text-transform:uppercase;letter-spacing:.06em}h1{font-family:"Fraunces",Georgia,serif;font-size:38px;font-weight:600;line-height:.98;margin:7px 0 8px}h2{font-family:"Fraunces",Georgia,serif;font-size:20px;font-weight:600;margin:0 0 10px}.lead{color:var(--soft);font-size:13px;line-height:1.5;margin-bottom:20px}.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;margin:12px 0}.choice{width:100%;border:1px solid var(--line);background:#141617;color:var(--ink);border-radius:18px;padding:17px;text-align:left;margin:10px 0;display:flex;align-items:center;gap:12px}.choice strong{display:block;font-family:"Fraunces",Georgia,serif;font-size:20px;font-weight:600}.choice small{display:block;color:var(--soft);font-size:12px;margin-top:3px;line-height:1.35}.ic{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#2A2D2F;color:#fff;font-weight:900;flex:none}#hasTurn{background:var(--pearl);color:#101214;border-color:var(--pearl);box-shadow:0 10px 26px rgba(236,234,229,.14)}#hasTurn small{color:#4B4F52}#hasTurn .ic{background:#101214;color:#fff}.field{display:block;margin:12px 0}.field span{display:block;font-size:11px;color:var(--soft);font-weight:800;margin-bottom:6px}.field input,.field select{width:100%;border:1px solid var(--line);border-radius:13px;padding:12px;background:#111314;color:var(--ink);font-size:16px}.btn{width:100%;border:0;border-radius:999px;padding:14px;background:var(--pearl);color:#101214;font-size:14px;font-weight:800;margin-top:7px}.btn.gray{background:#25292B;color:var(--ink)}.info{background:#222A31;border:1px solid #3B4854;color:#D7E0E8;border-radius:14px;padding:12px;font-size:12px;line-height:1.45}.success{background:var(--ok);color:var(--okText);border:1px solid #315244;border-radius:18px;padding:18px;line-height:1.5}.waiting{background:var(--amber);color:var(--amberText);border:1px solid #4C493D;border-radius:14px;padding:12px;font-size:12px;line-height:1.45}.error{background:#382323;color:#F0B0AC;border:1px solid #65403E;border-radius:14px;padding:12px;font-size:12px}.serviceGrid{display:grid;gap:8px}.service{border:1px solid var(--line);background:#141617;color:var(--ink);border-radius:14px;padding:12px;text-align:left}.service.active{border-color:var(--pearl);box-shadow:0 0 0 1px var(--pearl)}.service b{display:block}.service small{display:block;color:var(--soft);margin-top:3px}.back{border:0;background:transparent;color:var(--pearl);font-weight:800;padding:4px 0 10px}.loading{padding:18px;text-align:center;color:var(--soft)}
+/* PORTAL PREMIUM BARBERÍA CENTRAL — capa exclusivamente visual */
+:root{--pearl:#e9edf1;--red:#b53640;--navy:#1e639e;--bg:#05090d;--card:#0e1922;--ink:#f2f5f8;--soft:#aabac7;--line:#314350;--ok:#12362f;--okText:#b2f0d7;--metal-blue:linear-gradient(145deg,#b8e9ff 0%,#3d9cdd 18%,#07528d 47%,#082f57 73%,#73c6f4 100%);--metal-silver:linear-gradient(140deg,#fafafa 0%,#b8c0c9 19%,#677684 49%,#e4e9ee 75%,#83919e 100%);--metal-red:linear-gradient(145deg,#ffb2b0 0%,#d64b50 20%,#7c1d2d 53%,#bc3947 77%,#ff9da1 100%)}
+html{background:var(--bg)}
+body{min-height:100vh;background:radial-gradient(ellipse 95% 430px at 50% -170px,rgba(38,104,151,.31),transparent 78%),radial-gradient(ellipse 60% 350px at 100% 40%,rgba(6,51,83,.18),transparent),var(--bg)}
+.top{height:3px;background:linear-gradient(90deg,#081e30,#4e9ac8 21%,#e8eef3 43%,#912b37 65%,#f19c9e 83%,#1b3f63);box-shadow:0 2px 12px rgba(89,155,205,.23)}
+.wrap{max-width:520px;padding:32px 18px 62px}
+.brand{display:inline-flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.19em;color:#b9cbd7;margin:0 0 12px}
+.brand:before{content:"";width:23px;height:23px;display:inline-block;border-radius:8px;background:var(--metal-silver);box-shadow:inset 0 1px 0 #fff,0 3px 12px rgba(166,202,230,.15)}
+h1{font-family:"Fraunces",Georgia,serif;font-size:clamp(31px,7vw,42px);font-weight:600;line-height:1.09;letter-spacing:-.7px;margin:0 0 10px;text-shadow:0 3px 24px rgba(0,0,0,.4)}
+h2{font-family:"Inter",system-ui,sans-serif;font-size:15px;font-weight:800;letter-spacing:-.2px;margin-bottom:16px}
+.lead{font-size:13px;line-height:1.65;max-width:390px;margin-bottom:27px;color:#b8c5d0}
+.card{position:relative;background:linear-gradient(150deg,rgba(75,109,134,.17),transparent 38%),linear-gradient(165deg,#17242e,#0c151c 70%);border:1px solid #344856;border-radius:20px;padding:20px;margin:15px 0;box-shadow:inset 0 1px 0 rgba(255,255,255,.11),0 12px 35px rgba(0,0,0,.27)}
+.card h2{display:flex;align-items:center;gap:10px}
+.card h2:first-letter{color:#92d3f8}
+.serviceGrid{gap:10px}
+.service{position:relative;overflow:hidden;background:linear-gradient(155deg,#202f3a,#111b23 65%,#0e151b);border:1px solid #3c5260;border-radius:14px;padding:17px 16px;min-height:72px;box-shadow:inset 0 1px 0 rgba(255,255,255,.11),0 5px 12px rgba(0,0,0,.15);transition:border-color .15s,transform .15s,box-shadow .15s}
+.service:after{content:"›";position:absolute;right:15px;top:50%;transform:translateY(-50%);font-size:26px;font-weight:400;color:#7c9cb2}
+.service b{font-size:14px;max-width:85%;line-height:1.4}
+.service small{font-size:11px;margin-top:7px;color:#aebfcc;line-height:1.4}
+.service.active{border-color:#78c8fa;background:linear-gradient(145deg,#23455f,#11263a 70%,#0e1926);box-shadow:inset 0 1px rgba(255,255,255,.22),0 0 0 1px rgba(76,160,221,.38),0 8px 22px rgba(8,70,119,.19)}
+.service.active:after{color:#b3e6ff}
+.field{margin:13px 0}.field span{font-size:11px;letter-spacing:.025em;margin-bottom:8px;color:#c3ced8}
+.field input,.field select,.field textarea{background:linear-gradient(160deg,#17242e,#0d161d);border:1px solid #3b4f5e;border-radius:12px;color:#f4f6f8;padding:13px;box-shadow:inset 0 1px 3px rgba(0,0,0,.22);outline-offset:2px}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#70c1f0;outline:2px solid rgba(65,150,207,.25)}
+.field input[type="date"]{color-scheme:dark}
+.slots{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.slot{border-radius:11px;padding:13px 4px;background:linear-gradient(150deg,#1c2a35,#0d1720);border-color:#415462;font-size:13px;box-shadow:inset 0 1px rgba(255,255,255,.08)}
+.slot.active{background:var(--metal-blue);border-color:#8dd7ff;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);box-shadow:inset 0 1px rgba(255,255,255,.5),0 7px 18px rgba(12,88,145,.28)}
+.slot small{font-size:9px;line-height:1.4}
+.btn{border-radius:12px;background:var(--metal-blue);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45);border:1px solid #66b9e8;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 8px 20px rgba(10,68,109,.27);min-height:48px}
+.btn:disabled{opacity:.4;box-shadow:none}
+.info{background:#142635;border:1px solid #365368;color:#c4d9e8;border-radius:12px;line-height:1.6}
+.success{background:linear-gradient(145deg,#16483b,#0b201d);border-color:#4a9b7f;box-shadow:0 12px 35px rgba(0,0,0,.3);color:#d1ffe9;padding:24px}
+.error{border-radius:12px}
+.summary{padding:13px 14px;margin:14px 0;background:#152735;border:1px solid #385568;border-radius:12px;color:#c9deed}
+.mode{font-size:10px;letter-spacing:.03em;color:#8397a5;margin-top:20px}
+button{cursor:pointer}button:focus-visible{outline:2px solid #a9dfff;outline-offset:3px}
+@media(min-width:700px){.wrap{padding-top:55px}.card{padding:24px}}
+@media(prefers-reduced-motion:reduce){.service{transition:none}}
+
+
+
+/* LLEGADAS: mismo sistema visual del portal de reservas */
+.choice{position:relative;background:linear-gradient(155deg,#202f3a,#101a22 70%);border:1px solid #405663;border-radius:14px;padding:17px;gap:14px;margin:10px 0;box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 6px 18px rgba(0,0,0,.18);transition:border-color .15s,transform .15s}
+.choice strong{font-family:"Inter",system-ui,sans-serif;font-size:14px;font-weight:800;line-height:1.4}
+.choice small{font-size:11px;line-height:1.5;color:#b5c7d3;margin-top:5px}
+.ic{width:42px;height:42px;background:var(--metal-silver);color:#0d2636;border-radius:12px;box-shadow:inset 0 1px rgba(255,255,255,.5);font-size:17px}
+#hasTurn{background:linear-gradient(145deg,#244762,#102739 80%);color:#fff;border-color:#69b6e2;box-shadow:inset 0 1px rgba(255,255,255,.19),0 8px 23px rgba(7,70,114,.18)}
+#hasTurn small{color:#c6dfed}
+#hasTurn .ic{background:var(--metal-blue);color:#fff}
+.choice:hover,.service:hover{border-color:#86c8eb}
+.service{padding:15px}
+.service.active{border-color:#78c8fa;background:linear-gradient(145deg,#23455f,#11263a)}
+.back{color:#b4dff8;font-size:13px;padding:6px 0 15px}
+.btn.gray{background:linear-gradient(150deg,#2d414e,#17242e);color:#e8f2fa;border:1px solid #536b7c;text-shadow:none}
+.waiting{background:#302a1c;border:1px solid #685735;color:#f4dca6}
+
 </style>
 </head>
 <body><div class="top"></div><main class="wrap"><div id="app"><div class="loading">Cargando local…</div></div></main>
