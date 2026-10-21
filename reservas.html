@@ -50,9 +50,12 @@ button{cursor:pointer}button:focus-visible{outline:2px solid #a9dfff;outline-off
 @media(min-width:700px){.wrap{padding-top:55px}.card{padding:24px}}
 @media(prefers-reduced-motion:reduce){.service{transition:none}}
 
+
+/* Modo integrado en el portal único: evitar cabecera duplicada */
+body:has(.wrap){}html:has(body){}body.embed .top,body.embed .brand,body.embed h1,body.embed .lead,body.embed .mode{display:none!important}body.embed .wrap{padding:0;max-width:none}body.embed .card:first-of-type{margin-top:0}body.embed{background:#05090d}body.embed .card{border-radius:16px}body.embed .wrap{padding-bottom:18px}
 </style>
 </head>
-<body><div class="top"></div><main class="wrap"><div id="app"><div class="loading">Cargando agenda…</div></div></main>
+<body><script>if(new URLSearchParams(location.search).get('embed')==='1')document.body.classList.add('embed')</script><div class="top"></div><main class="wrap"><div id="app"><div class="loading">Cargando agenda…</div></div></main>
 <script>
 (()=>{'use strict';
 const KEY='mi-negocio-barberia-v4';
