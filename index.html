@@ -761,7 +761,11 @@ async function pushSharedOperations(show=false){
    a.localDirtyUntil=0;
   }
   const qs=data.queue.filter(q=>(q.businessDate||TODAY)===TODAY&&['waiting','in_service'].includes(q.status));
-  for(const q of qs)await sharedPost('/api/owner/queue-upsert',queueSharedPayload(q));
+  for(const q of qs){
+   if(queueStatusPending.has(q.id))continue; // Never push stale status over an in-flight transition.
+   const res=await sharedPost('/api/owner/queue-upsert',queueSharedPayload(q));
+   if(res?.updatedAt)q.updatedAt=res.updatedAt;
+  }
   sharedOpsLastError='';
   localStorage.setItem(KEY,JSON.stringify(data));
   if(show)alert('Agenda y fila sincronizadas.');
@@ -845,7 +849,7 @@ async function pullSharedOperations(show=false){
   const remoteQueue=queue.filter(q=>['waiting','in_service'].includes(q.status)&&!locallyCompletedQueueIds.has(String(q.id))).map(q=>{
    const linked=q.appointmentId?appointmentBySharedId(q.appointmentId):null;
    const cid=linked?.clientId||queueClientId(q.clientName||'',q.clientPhone||'');
-   const prev=localToday.find(x=>x.id===q.id),keepLocal=Number(prev?.localDirtyUntil||0)>nowMs;
+   const prev=localToday.find(x=>x.id===q.id),keepLocal=queueStatusPending.has(String(q.id))||Number(prev?.localDirtyUntil||0)>nowMs;
    return {
     id:String(q.id),clientId:cid||prev?.clientId||null,name:q.clientName||prev?.name||'',phone:q.clientPhone||prev?.phone||'',serviceId:q.serviceId,
     factor:Number(prev?.factor||1),label:prev?.label||'Normal',arrival:q.arrival||prev?.arrival||'',status:keepLocal?(prev.status||'waiting'):(q.status||'waiting'),
@@ -1103,8 +1107,12 @@ async function queueStatus(qId,status){
   }else if(onlineCfg().backendUrl){
    alert('No se pudo verificar la conexión de la fila. El estado no cambió.');return;
   }
-  q.status=status;q.localDirtyUntil=0;
+  q.status=status;
+  // A delayed server read may still contain the previous status. Keep the
+  // confirmed local transition authoritative during the sync overlap.
+  q.localDirtyUntil=Date.now()+30000;
   localStorage.setItem(KEY,JSON.stringify(data));render();
+  scheduleSharedOperationsPush();
  }catch(e){sharedOpsLastError=String(e.message||e);alert('No se pudo guardar el cambio de estado en la fila: '+sharedOpsLastError)}
  finally{queueStatusPending.delete(qId)}
 }
