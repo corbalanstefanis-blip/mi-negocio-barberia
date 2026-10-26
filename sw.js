@@ -1,5 +1,5 @@
 // Reintento de publicación GitHub Pages - 2026-10-09
-const CACHE='mi-negocio-barberia-v45-client-identity';
+const CACHE='mi-negocio-barberia-v46-delete-client';
 const ASSETS=['./','./index.html','./reservas.html','./llegada.html','./qrcode.min.js?v=20261004-2','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
