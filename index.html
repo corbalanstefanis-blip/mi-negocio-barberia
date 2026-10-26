@@ -1038,30 +1038,56 @@ function openClientModal(clientId){const c=clientId?client(clientId):null;modal(
 async function deleteClient(clientId){
  const c=client(clientId);if(!c)return;
  const aps=data.appointments.filter(a=>a.clientId===clientId);
- const hasFinancial=aps.some(a=>a.status==='completed'||Number(a.paidAmount||0)>0||Number(a.depositAmount||0)>0||a.consumed===true)||data.txns.some(t=>t.clientId===clientId)||data.logs.some(l=>l.clientId===clientId);
- if(hasFinancial)return alert('No se puede eliminar este cliente porque tiene trabajos realizados, consumos o movimientos de dinero. Podés editar sus datos, pero el historial se conserva.');
  const apIds=new Set(aps.map(a=>a.id));
  const linkedQueue=data.queue.filter(q=>q.clientId===clientId||apIds.has(q.appointmentId));
  const linkedWait=data.wait.filter(w=>w.clientId===clientId);
- const detail=[aps.length?aps.length+' turno'+(aps.length===1?'':'s'):'',linkedQueue.length?linkedQueue.length+' registro'+(linkedQueue.length===1?'':'s')+' de fila':'',linkedWait.length?linkedWait.length+' espera'+(linkedWait.length===1?'':'s'):''].filter(Boolean).join(', ');
- if(!confirm('¿Eliminar a '+c.name+'?'+(detail?' También se quitarán '+detail+'.':'')+' Esta acción no se puede deshacer.'))return;
- for(const a of aps.filter(a=>a.onlineBookingId&&['pending','confirmed'].includes(a.status))){
+ const linkedTxns=data.txns.filter(t=>t.clientId===clientId||apIds.has(t.appointmentId));
+ const linkedLogs=data.logs.filter(l=>l.clientId===clientId||apIds.has(l.appointmentId));
+ const hasFinancial=aps.some(a=>a.status==='completed'||Number(a.paidAmount||0)>0||Number(a.depositAmount||0)>0||a.consumed===true)||linkedTxns.length>0||linkedLogs.length>0;
+ const isDemoCleanup=cleanSlug(onlineCfg().slug)==='barberia-central'&&/demo/i.test(String(c.name||''));
+ if(hasFinancial&&!isDemoCleanup)return alert('No se puede eliminar este cliente porque tiene trabajos realizados, consumos o movimientos de dinero. Podés editar sus datos, pero el historial se conserva.');
+ const detail=[aps.length?aps.length+' turno'+(aps.length===1?'':'s'):'',linkedQueue.length?linkedQueue.length+' registro'+(linkedQueue.length===1?'':'s')+' de fila':'',linkedWait.length?linkedWait.length+' espera'+(linkedWait.length===1?'':'s'):'',linkedTxns.length?linkedTxns.length+' movimiento'+(linkedTxns.length===1?'':'s')+' de dinero':'',linkedLogs.length?linkedLogs.length+' consumo'+(linkedLogs.length===1?'':'s'):''].filter(Boolean).join(', ');
+ const msg=isDemoCleanup&&hasFinancial
+  ?'Este cliente está identificado como DEMO. ¿Eliminarlo junto con todo su historial de prueba'+(detail?' ('+detail+')':'')+'? Los consumos de prueba se devolverán al stock. Esta acción no se puede deshacer.'
+  :'¿Eliminar a '+c.name+'?'+(detail?' También se quitarán '+detail+'.':'')+' Esta acción no se puede deshacer.';
+ if(!confirm(msg))return;
+
+ // Primero retirar del backend para que una sincronización posterior no lo vuelva a crear.
+ for(const a of aps.filter(a=>a.onlineBookingId)){
   const ok=await updateOnlineBookingRemote(a,'cancelled');if(!ok)return;
  }
  try{
-  for(const q of linkedQueue.filter(q=>['waiting','in_service'].includes(q.status))){
+  for(const q of linkedQueue){
    if(sharedOpsReady())await sharedPost('/api/owner/queue-upsert',{...queueSharedPayload(q),status:'cancelled'});
   }
  }catch(e){return alert('No pude quitar este cliente de la fila compartida: '+String(e.message||e))}
+
+ // Si era un demo finalizado, devolver al stock lo consumido durante la prueba.
+ if(isDemoCleanup){
+  for(const log of linkedLogs){
+   for(const row of (log.rows||[])){
+    const item=inv(row.inventoryId);
+    if(item)item.stock=Number(item.stock||0)+Number(row.qty||0);
+   }
+  }
+ }
+
+ const hiddenKey='mn_hidden_online_'+cleanSlug(onlineCfg().slug);
+ const hiddenIds=new Set(JSON.parse(localStorage.getItem(hiddenKey)||'[]'));
+ aps.forEach(a=>{if(a.onlineBookingId)hiddenIds.add(String(a.onlineBookingId))});
+ localStorage.setItem(hiddenKey,JSON.stringify([...hiddenIds]));
+
  data.queue=data.queue.filter(q=>!(q.clientId===clientId||apIds.has(q.appointmentId)));
  data.wait=data.wait.filter(w=>w.clientId!==clientId);
+ data.txns=data.txns.filter(t=>!(t.clientId===clientId||apIds.has(t.appointmentId)));
+ data.logs=data.logs.filter(l=>!(l.clientId===clientId||apIds.has(l.appointmentId)));
  data.appointments=data.appointments.filter(a=>a.clientId!==clientId);
  data.clients=data.clients.filter(x=>x.id!==clientId);
  selected=null;
  localStorage.setItem(KEY,JSON.stringify(data));
  scheduleOnlineSync();
  closeModal();render();
- alert('Cliente eliminado.');
+ alert(isDemoCleanup?'Cliente demo e historial de prueba eliminados.':'Cliente eliminado.');
 }
 
 function recipeInputs(recipe=[]){return data.inventory.length?`<div class="recipeBox"><div class="recipeTitle">Materiales base por trabajo</div>${data.inventory.map(i=>{const r=recipe.find(x=>x.inventoryId===i.id);return `<div class="materialLine"><div class="name">${esc(i.name)}<small>${esc(i.unit)} · ${money(i.costUnit)}/${esc(i.unit)}</small></div><input class="recipeQty" data-inv="${i.id}" type="number" min="0" step="0.01" value="${r?Number(r.qty):0}"></div>`}).join('')}</div>`:'<div class="info">Primero cargá insumos para poder armar la receta.</div>'}
