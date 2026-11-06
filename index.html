@@ -734,6 +734,7 @@ async function pushQueueItemNow(q){
  try{
   const res=await sharedPost('/api/owner/queue-upsert',queueSharedPayload(q));
   q.localDirtyUntil=0;
+  q.syncPending=false;
   if(res?.updatedAt)q.updatedAt=res.updatedAt;
   localStorage.setItem(KEY,JSON.stringify(data));
   return true;
@@ -869,7 +870,7 @@ async function pullSharedOperations(show=false){
    };
   });
   const remoteIds=new Set(remoteQueue.map(q=>String(q.id)));
-  const localDirtyMissing=localToday.filter(q=>Number(q.localDirtyUntil||0)>nowMs&&!remoteIds.has(String(q.id))&&!locallyCompletedQueueIds.has(String(q.id)));
+  const localDirtyMissing=localToday.filter(q=>(q.syncPending===true||Number(q.localDirtyUntil||0)>nowMs)&&!remoteIds.has(String(q.id))&&!locallyCompletedQueueIds.has(String(q.id)));
   data.queue=[...data.queue.filter(q=>(q.businessDate||TODAY)!==TODAY),...remoteQueue,...localDirtyMissing];
   sharedOpsLastError='';
   localStorage.setItem(KEY,JSON.stringify(data));
@@ -1151,16 +1152,22 @@ async function markAppointmentArrived(apId){
  if(data.queue.some(q=>q.appointmentId===apId&&['waiting','in_service'].includes(q.status)))return;
  const d=new Date(),oldStatus=a.status;
  if(a.status==='pending')a.status='confirmed';
- const q={id:id('q'),clientId:a.clientId||null,name:a.walkInName||'',phone:'',serviceId:a.serviceId,factor:Number(a.factor||1),label:a.label||factorLabel(a.factor||1),arrival:`${pad(d.getHours())}:${pad(d.getMinutes())}`,status:'waiting',appointmentId:a.id,sharedAppointmentId:sharedAppointmentId(a),source:'appointment',businessDate:TODAY,localDirtyUntil:Date.now()+30000};
+ // Mientras la llegada no haya quedado confirmada por el servidor, conservarla
+ // localmente aunque haya refresh o una lectura remota atrasada.
+ const q={id:id('q'),clientId:a.clientId||null,name:a.walkInName||'',phone:'',serviceId:a.serviceId,factor:Number(a.factor||1),label:a.label||factorLabel(a.factor||1),arrival:`${pad(d.getHours())}:${pad(d.getMinutes())}`,status:'waiting',appointmentId:a.id,sharedAppointmentId:sharedAppointmentId(a),source:'appointment',businessDate:TODAY,localDirtyUntil:Date.now()+12*60*60*1000,syncPending:true};
  data.queue.push(q);
- if(oldStatus!==a.status)a.localDirtyUntil=Date.now()+30000;
+ if(oldStatus!==a.status)a.localDirtyUntil=Date.now()+12*60*60*1000;
  localStorage.setItem(KEY,JSON.stringify(data));render();
  const queueOk=await pushQueueItemNow(q);
  let appointmentOk=true;
  if(a.onlineBookingId&&oldStatus!==a.status)appointmentOk=await updateOnlineBookingRemote(a,a.status);
- if(queueOk)q.localDirtyUntil=0;
+ if(queueOk){q.localDirtyUntil=0;q.syncPending=false}
  if(appointmentOk)a.localDirtyUntil=0;
  localStorage.setItem(KEY,JSON.stringify(data));
+ if(!queueOk){
+  scheduleSharedOperationsPush();
+  alert('La llegada quedó guardada en este dispositivo, pero todavía no pudo sincronizarse. No se perderá al refrescar y la app volverá a intentar automáticamente.');
+ }
 }
 const queueStatusPending=new Set();
 async function queueStatus(qId,status){
