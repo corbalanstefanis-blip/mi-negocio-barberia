@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MI NEGOCIO ADMIN</title>
+<style>
+:root{font-family:Inter,system-ui,sans-serif;color:#17201f;background:#f4f6f5}
+*{box-sizing:border-box}body{margin:0}.shell{max-width:1180px;margin:auto;padding:24px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+h1{margin:0;font-size:24px}.brand{font-weight:900;letter-spacing:.05em}.muted{color:#65706e}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{background:#fff;border:1px solid #dfe5e3;border-radius:16px;padding:18px;box-shadow:0 3px 18px #0000000a}
+.value{font-size:30px;font-weight:850;margin-top:6px}.section{margin-top:20px}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:16px;overflow:hidden}
+th,td{text-align:left;padding:13px;border-bottom:1px solid #edf0ef;font-size:14px}th{font-size:12px;color:#65706e;text-transform:uppercase}
+.pill{display:inline-block;padding:5px 9px;border-radius:999px;background:#e9efed;font-size:12px;font-weight:750}
+.notice{margin-top:18px;padding:14px 16px;background:#fff6dc;border:1px solid #ead38a;border-radius:12px}
+@media(max-width:760px){.grid{grid-template-columns:1fr 1fr}.shell{padding:16px}table{display:block;overflow:auto}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header><div><div class="brand">MI NEGOCIO ADMIN</div><div class="muted">Control central de locales, licencias y pagos</div></div><span class="pill">Rama de desarrollo</span></header>
+<div class="notice"><b>Panel en construcción segura.</b> Esta versión todavía no controla la app de producción. Se conectará al backend de licencias cuando termine la API.</div>
+<section class="grid section">
+<div class="card"><div class="muted">Activos</div><div class="value">—</div></div>
+<div class="card"><div class="muted">En gracia</div><div class="value">—</div></div>
+<div class="card"><div class="muted">Suspendidos</div><div class="value">—</div></div>
+<div class="card"><div class="muted">Cobrado este mes</div><div class="value">—</div></div>
+</section>
+<section class="section card">
+<h2>Alertas</h2>
+<p class="muted">Acá aparecerán vencimientos, pagos rechazados, suspensiones próximas, reactivaciones, revisiones mensuales de tarifa y cuentas próximas a archivo/eliminación.</p>
+</section>
+<section class="section">
+<h2>Locales</h2>
+<table>
+<thead><tr><th>Local</th><th>Plan</th><th>Precio</th><th>Renovación</th><th>Estado</th><th>Acciones</th></tr></thead>
+<tbody><tr><td colspan="6" class="muted">La lista se cargará desde la API de MI NEGOCIO ADMIN.</td></tr></tbody>
+</table>
+</section>
+<section class="section card">
+<h2>Accesos internos</h2>
+<p class="muted">Propietarios: Stefania y Lean. La estructura permitirá sumar nuevos propietarios, administradores, soporte o lectura con permisos separados.</p>
+</section>
+</div>
+</body>
+</html>
