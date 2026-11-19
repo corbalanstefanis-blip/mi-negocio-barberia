@@ -59,7 +59,7 @@ label{display:block;font-size:12px;font-weight:700;margin-top:10px}input,select,
 <script>
 (function(){
 'use strict';
-var KEY='mi-negocio-admin-v2';
+var KEY='mi-negocio-admin-v2';var BACKEND='https://mi-negocio-reservas.corbalanstefanis.workers.dev';
 var db=load();
 function load(){try{return JSON.parse(localStorage.getItem(KEY))||{businesses:[],payments:[]}}catch(e){return{businesses:[],payments:[]}}}
 function save(){localStorage.setItem(KEY,JSON.stringify(db));render()}
@@ -105,13 +105,14 @@ function openDetail(bid){
  document.getElementById('detailBody').innerHTML=
  '<h2>'+esc(b.name)+'</h2><div class="muted">'+esc(b.owner)+' · '+esc(b.phone||'Sin teléfono')+'</div>'+
  '<p><span class="pill '+esc(b.status)+'">'+esc(b.status)+'</span> · '+money(b.price)+'/mes · renueva '+esc(b.renewal)+'</p>'+
- '<div class="card"><b>Entrega</b><p class="links"><b>App:</b> '+esc(app)+'<br><b>Reservas:</b> '+esc(booking)+'<br><b>Slug:</b> '+esc(b.slug)+'</p>'+
- '<div class="toolbar"><button class="btn dark" id="copyDelivery">Copiar datos de entrega</button><button class="btn soft" id="downloadPack">Descargar alta</button></div></div>'+
+ '<div class="card"><b>Entrega</b><p class="links"><b>App:</b> '+esc(app)+'<br><b>Reservas:</b> '+esc(booking)+'<br><b>Slug:</b> '+esc(b.slug)+'<br><b>Servidor:</b> '+(b.provisionedAt?'Creado / sincronizado':'Pendiente')+'</p>'+
+ '<div class="toolbar"><button class="btn dark" id="provisionBtn">'+(b.provisionedAt?'Actualizar servidor':'Crear en servidor')+'</button><button class="btn soft" id="copyDelivery">Copiar datos de entrega</button><button class="btn soft" id="downloadPack">Descargar alta</button></div><div class="muted" style="margin-top:9px">El archivo de alta contiene la clave administradora. Enviarlo solo al titular del negocio.</div></div>'+
  '<div class="card section"><b>Suscripción</b><p>Cobrado histórico: '+money(payTotal)+'</p><div class="toolbar">'+
  '<button class="btn soft" data-state="ACTIVE">Activar</button><button class="btn soft" data-state="GRACE">Gracia</button><button class="btn danger" data-state="SUSPENDED">Suspender</button><button class="btn soft" id="paymentBtn">Registrar pago</button></div></div>'+
  '<div class="card section"><b>Notas</b><p>'+esc(b.notes||'—')+'</p></div>';
- document.getElementById('copyDelivery').onclick=function(){
-  var txt='MI NEGOCIO - '+b.name+'\nApp: '+app+'\nReservas: '+booking+'\nSlug: '+b.slug;
+ document.getElementById('provisionBtn').onclick=async function(){var btn=this;btn.disabled=true;var old=btn.textContent;btn.textContent='Conectando…';try{var payload={slug:b.slug,businessName:b.name,services:(b.services||[]).map(function(x){return{id:x.id,name:x.name,duration:Number(x.duration||30),price:Number(x.price||0),onlineEnabled:x.onlineEnabled!==false,allowOverbook:Boolean(x.allowOverbook),maxConcurrent:Math.max(1,Number(x.maxConcurrent||1))}}),bookingSettings:{enabled:true,openTime:b.openTime||'09:00',closeTime:b.closeTime||'19:00',slotStep:15,minAdvanceHours:2,maxAdvanceDays:30,approvalMode:'auto',workingDays:[1,2,3,4,5,6],telegramEnabled:false},telegramChatId:'',localBlocks:[]};var r=await fetch(BACKEND+'/api/business/sync',{method:'POST',headers:{'Content-Type':'application/json','x-owner-secret':b.ownerSecret},body:JSON.stringify(payload)});if(!r.ok)throw new Error(await r.text());b.provisionedAt=new Date().toISOString();save();alert('Local creado y aislado en el servidor.');openDetail(b.id)}catch(e){alert('No pude crear el local en el servidor: '+String(e.message||e));btn.disabled=false;btn.textContent=old}};
+document.getElementById('copyDelivery').onclick=function(){
+  var txt='MI NEGOCIO - '+b.name+'\nApp: '+app+'\nReservas: '+booking+'\nSlug: '+b.slug+'\nAlta del dispositivo: usar el archivo alta-'+b.slug+'.json en la pantalla Activar MI NEGOCIO.';
   if(navigator.clipboard)navigator.clipboard.writeText(txt).then(function(){alert('Datos copiados.')});else prompt('Copiá:',txt)
  };
  document.getElementById('downloadPack').onclick=function(){download(JSON.stringify({version:1,business:{name:b.name,owner:b.owner,phone:b.phone,slug:b.slug,plan:b.plan,price:b.price,start:b.start,renewal:b.renewal,openTime:b.openTime||'09:00',closeTime:b.closeTime||'19:00',services:b.services||[]},appUrl:app,bookingUrl:booking,ownerSecret:b.ownerSecret},null,2),'alta-'+b.slug+'.json')};
