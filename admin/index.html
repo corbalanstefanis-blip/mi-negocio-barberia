@@ -22,7 +22,7 @@ label{display:block;font-size:12px;font-weight:700;margin-top:10px}input,select,
 <div class="shell">
 <header>
 <div><h1>MI NEGOCIO ADMIN</h1><div class="muted">Altas, suscripciones y entregas</div></div>
-<div class="toolbar"><button class="btn soft" id="exportBtn">Backup</button><button class="btn soft" id="importBtn">Restaurar</button><button class="btn dark" id="newBtn">+ Dar de alta local</button></div>
+<div class="toolbar"><button class="btn soft" id="platformKeyBtn">Clave plataforma</button><button class="btn soft" id="exportBtn">Backup</button><button class="btn soft" id="importBtn">Restaurar</button><button class="btn dark" id="newBtn">+ Dar de alta local</button></div>
 </header>
 <div class="note section"><b>Versión operativa de preparación.</b> Podés cargar clientes, controlar estado/pagos y generar el paquete de entrega. La creación automática en el backend todavía no está conectada.</div>
 <section class="grid">
@@ -59,10 +59,10 @@ label{display:block;font-size:12px;font-weight:700;margin-top:10px}input,select,
 <script>
 (function(){
 'use strict';
-var KEY='mi-negocio-admin-v2';var BACKEND='https://mi-negocio-reservas.corbalanstefanis.workers.dev';
+var KEY='mi-negocio-admin-v2';var PLATFORM_KEY_KEY='mi-negocio-platform-key';var BACKEND='https://mi-negocio-reservas.corbalanstefanis.workers.dev';
 var db=load();
 function load(){try{return JSON.parse(localStorage.getItem(KEY))||{businesses:[],payments:[]}}catch(e){return{businesses:[],payments:[]}}}
-function save(){localStorage.setItem(KEY,JSON.stringify(db));render()}
+function save(){localStorage.setItem(KEY,JSON.stringify(db));render()}function platformKey(){return String(localStorage.getItem(PLATFORM_KEY_KEY)||'').trim()}function requirePlatformKey(){var k=platformKey();if(k)return k;k=String(prompt('Pegá la clave privada de plataforma. Se guarda solo en este navegador.')||'').trim();if(k)localStorage.setItem(PLATFORM_KEY_KEY,k);return k}
 function id(){return (crypto.randomUUID?crypto.randomUUID():'id-'+Date.now()+'-'+Math.random().toString(16).slice(2))}
 function esc(s){return String(s==null?'':s).replace(/[&<>'"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]})}
 function slugify(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)}
@@ -108,7 +108,7 @@ function openDetail(bid){
  '<div class="card"><b>Entrega</b><p class="links"><b>App:</b> '+esc(app)+'<br><b>Reservas:</b> '+esc(booking)+'<br><b>Slug:</b> '+esc(b.slug)+'<br><b>Servidor:</b> '+(b.provisionedAt?'Creado / sincronizado':'Pendiente')+'</p>'+
  '<div class="toolbar"><button class="btn dark" id="provisionBtn">'+(b.provisionedAt?'Actualizar servidor':'Crear en servidor')+'</button><button class="btn soft" id="copyDelivery">Copiar datos de entrega</button><button class="btn soft" id="downloadPack">Descargar alta</button></div><div class="muted" style="margin-top:9px">El archivo de alta contiene la clave administradora. Enviarlo solo al titular del negocio.</div></div>'+
  '<div class="card section"><b>Suscripción</b><p>Cobrado histórico: '+money(payTotal)+'</p><div class="toolbar">'+
- '<button class="btn soft" data-state="ACTIVE">Activar</button><button class="btn soft" data-state="GRACE">Gracia</button><button class="btn danger" data-state="SUSPENDED">Suspender</button><button class="btn soft" id="paymentBtn">Registrar pago</button></div></div>'+
+ '<button class="btn soft" data-state="ACTIVE">Activar</button><button class="btn soft" data-state="GRACE">Gracia</button><button class="btn danger" data-state="SUSPENDED">Suspender</button><button class="btn soft" id="paymentBtn">Registrar pago</button></div><div class="muted" style="margin-top:8px">Con Worker v23 publicado, estos estados también se aplican en el servidor.</div></div>'+
  '<div class="card section"><b>Notas</b><p>'+esc(b.notes||'—')+'</p></div>';
  document.getElementById('provisionBtn').onclick=async function(){var btn=this;btn.disabled=true;var old=btn.textContent;btn.textContent='Conectando…';try{var payload={slug:b.slug,businessName:b.name,services:(b.services||[]).map(function(x){return{id:x.id,name:x.name,duration:Number(x.duration||30),price:Number(x.price||0),onlineEnabled:x.onlineEnabled!==false,allowOverbook:Boolean(x.allowOverbook),maxConcurrent:Math.max(1,Number(x.maxConcurrent||1))}}),bookingSettings:{enabled:true,openTime:b.openTime||'09:00',closeTime:b.closeTime||'19:00',slotStep:15,minAdvanceHours:2,maxAdvanceDays:30,approvalMode:'auto',workingDays:[1,2,3,4,5,6],telegramEnabled:false},telegramChatId:'',localBlocks:[]};var r=await fetch(BACKEND+'/api/business/sync',{method:'POST',headers:{'Content-Type':'application/json','x-owner-secret':b.ownerSecret},body:JSON.stringify(payload)});if(!r.ok)throw new Error(await r.text());b.provisionedAt=new Date().toISOString();save();alert('Local creado y aislado en el servidor.');openDetail(b.id)}catch(e){alert('No pude crear el local en el servidor: '+String(e.message||e));btn.disabled=false;btn.textContent=old}};
 document.getElementById('copyDelivery').onclick=function(){
@@ -116,12 +116,12 @@ document.getElementById('copyDelivery').onclick=function(){
   if(navigator.clipboard)navigator.clipboard.writeText(txt).then(function(){alert('Datos copiados.')});else prompt('Copiá:',txt)
  };
  document.getElementById('downloadPack').onclick=function(){download(JSON.stringify({version:1,business:{name:b.name,owner:b.owner,phone:b.phone,slug:b.slug,plan:b.plan,price:b.price,start:b.start,renewal:b.renewal,openTime:b.openTime||'09:00',closeTime:b.closeTime||'19:00',services:b.services||[]},appUrl:app,bookingUrl:booking,ownerSecret:b.ownerSecret},null,2),'alta-'+b.slug+'.json')};
- Array.prototype.forEach.call(document.querySelectorAll('[data-state]'),function(x){x.onclick=function(){b.status=x.getAttribute('data-state');save();openDetail(b.id)}});
+ Array.prototype.forEach.call(document.querySelectorAll('[data-state]'),function(x){x.onclick=async function(){var state=x.getAttribute('data-state'),key=requirePlatformKey();if(!key)return;var prev=b.status;b.status=state;save();try{var resp=await fetch(BACKEND+'/api/platform/subscription-upsert',{method:'POST',headers:{'Content-Type':'application/json','x-platform-key':key},body:JSON.stringify({slug:b.slug,status:state,effectivePriceCents:Math.round(Number(b.price||0)*100),currentPeriodStart:b.start||'',currentPeriodEnd:b.renewal||'',planCode:b.plan||'barberia'})});if(!resp.ok)throw new Error(await resp.text());b.licenseSyncedAt=new Date().toISOString();save();openDetail(b.id)}catch(e){b.status=prev;save();alert('No pude aplicar el estado en el servidor: '+String(e.message||e));openDetail(b.id)}}});
  document.getElementById('paymentBtn').onclick=function(){var amount=prompt('Importe cobrado',String(b.price));if(amount===null)return;var n=Number(String(amount).replace(/[^0-9.,]/g,'').replace(',','.'));if(!n)return alert('Importe inválido');db.payments.push({id:id(),businessId:b.id,amount:n,status:'PAID',paidAt:new Date().toISOString()});b.status='ACTIVE';b.renewal=addMonth(b.renewal||today());save();openDetail(b.id)};
  document.getElementById('detailDlg').showModal();
 }
 function download(txt,name){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'}));a.download=name;a.click();setTimeout(function(){URL.revokeObjectURL(a.href)},500)}
-document.getElementById('newBtn').onclick=openNew;document.getElementById('cancelDlg').onclick=function(){document.getElementById('dlg').close()};document.getElementById('closeDetail').onclick=function(){document.getElementById('detailDlg').close()};
+document.getElementById('platformKeyBtn').onclick=function(){var current=platformKey();var k=prompt('Clave privada de plataforma',current);if(k===null)return;k=String(k).trim();if(k)localStorage.setItem(PLATFORM_KEY_KEY,k);else localStorage.removeItem(PLATFORM_KEY_KEY);alert(k?'Clave guardada en este navegador.':'Clave eliminada de este navegador.')};document.getElementById('newBtn').onclick=openNew;document.getElementById('cancelDlg').onclick=function(){document.getElementById('dlg').close()};document.getElementById('closeDetail').onclick=function(){document.getElementById('detailDlg').close()};
 document.getElementById('exportBtn').onclick=function(){download(JSON.stringify(db,null,2),'mi-negocio-admin-backup-'+today()+'.json')};
 document.getElementById('importBtn').onclick=function(){document.getElementById('importFile').click()};
 document.getElementById('importFile').onchange=function(){var f=this.files&&this.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var x=JSON.parse(r.result);if(!Array.isArray(x.businesses)||!Array.isArray(x.payments))throw 0;db=x;save();alert('Backup restaurado.')}catch(e){alert('Ese archivo no es un backup válido de MI NEGOCIO ADMIN.')}};r.readAsText(f)};
