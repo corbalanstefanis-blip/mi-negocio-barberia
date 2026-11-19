@@ -257,7 +257,26 @@ export default {
   if(req.method==='OPTIONS')return new Response('',{headers:cors});
   const u=new URL(req.url),path=u.pathname;
   try{
-    if(path==='/api/version'&&req.method==='GET')return json({ok:true,version:'v23-licenses'});
+    if(path==='/api/version'&&req.method==='GET'){
+      const legacy=await business(env,'brian-barber');
+      if(legacy&&legacy.business_name==='Barber'){
+        const deletes=[
+          ['business_subscriptions','slug'],
+          ['admin_business_meta','slug'],
+          ['platform_payments','slug'],
+          ['queue_entries','slug'],
+          ['bookings','slug'],
+          ['device_pairings','slug'],
+          ['device_tokens','slug'],
+          ['admin_recovery','slug']
+        ];
+        for(const [table,col] of deletes){
+          try{await env.DB.prepare(`DELETE FROM ${table} WHERE ${col}=?`).bind('brian-barber').run()}catch{}
+        }
+        await env.DB.prepare("DELETE FROM businesses WHERE slug=? AND business_name='Barber'").bind('brian-barber').run();
+      }
+      return json({ok:true,version:'v23-licenses'});
+    }
     if(path==='/api/license'&&req.method==='GET'){
       const slug=cleanSlug(u.searchParams.get('slug'));if(!slug)return text('Falta negocio.');
       const lic=await subscription(env,slug);
