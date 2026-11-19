@@ -45,6 +45,29 @@ async function ensureLicenseTables(env){
     env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON business_subscriptions(status,current_period_end)')
   ]);
 }
+async function ensureAdminTables(env){
+  await env.DB.batch([
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS admin_business_meta(
+      slug TEXT PRIMARY KEY,
+      owner TEXT,
+      phone TEXT,
+      notes TEXT,
+      start_date TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS platform_payments(
+      id TEXT PRIMARY KEY,
+      slug TEXT NOT NULL,
+      amount_cents INTEGER NOT NULL,
+      currency TEXT NOT NULL DEFAULT 'ARS',
+      paid_at TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )`),
+    env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_platform_payments_slug ON platform_payments(slug,paid_at)')
+  ]);
+}
+
 async function subscription(env,slug){
   await ensureLicenseTables(env);
   const row=await env.DB.prepare('SELECT * FROM business_subscriptions WHERE slug=?').bind(slug).first();
@@ -266,6 +289,123 @@ export default {
       }
       const lic=await subscription(env,slug);return json({ok:true,license:lic});
     }
+    if(path==='/api/platform/businesses'&&req.method==='GET'){
+      if(!platformOk(req,env))return text('No autorizado.',403);
+      await ensureLicenseTables(env);
+      await ensureAdminTables(env);
+      const [bq,pq]=await Promise.all([
+        env.DB.prepare(`SELECT
+          b.slug,b.business_name,b.owner_secret,b.config_json,b.updated_at,
+          m.owner,m.phone,m.notes,m.start_date,m.created_at AS admin_created_at,
+          s.status,s.plan_code,s.effective_price_cents,s.current_period_start,s.current_period_end,s.grace_until
+          FROM businesses b
+          LEFT JOIN admin_business_meta m ON m.slug=b.slug
+          LEFT JOIN business_subscriptions s ON s.slug=b.slug
+          ORDER BY COALESCE(m.created_at,b.updated_at) DESC`).all(),
+        env.DB.prepare('SELECT * FROM platform_payments ORDER BY paid_at DESC,created_at DESC').all()
+      ]);
+      const businesses=(bq.results||[]).map(r=>{
+        const cfg=parsedConfig(r);
+        return {
+          slug:r.slug,
+          name:r.business_name,
+          owner:r.owner||'',
+          phone:r.phone||'',
+          notes:r.notes||'',
+          ownerSecret:r.owner_secret,
+          plan:r.plan_code||'barberia',
+          priceCents:Number(r.effective_price_cents||0),
+          start:r.current_period_start||r.start_date||'',
+          renewal:r.current_period_end||'',
+          status:r.status||'ACTIVE',
+          graceUntil:r.grace_until||null,
+          services:cfg.services||[],
+          bookingSettings:cfg.bookingSettings||{},
+          createdAt:r.admin_created_at||r.updated_at||''
+        };
+      });
+      return json({
+        businesses,
+        payments:(pq.results||[]).map(p=>({
+          id:p.id,
+          slug:p.slug,
+          amountCents:Number(p.amount_cents||0),
+          currency:p.currency||'ARS',
+          paidAt:p.paid_at
+        }))
+      });
+    }
+
+    if(path==='/api/platform/business-create'&&req.method==='POST'){
+      if(!platformOk(req,env))return text('No autorizado.',403);
+      const b=await req.json();
+      const slug=cleanSlug(b.slug||b.name);
+      const name=String(b.name||'').trim();
+      if(!slug||!name)return text('Falta nombre o slug.');
+      if(await business(env,slug))return text('Ese slug ya existe en el servidor.',409);
+
+      await ensureLicenseTables(env);
+      await ensureAdminTables(env);
+
+      const now=nowIso();
+      const secret=ownerSecret();
+      const services=Array.isArray(b.services)?b.services:[];
+      const bookingSettings={
+        enabled:true,
+        openTime:String(b.openTime||'09:00'),
+        closeTime:String(b.closeTime||'19:00'),
+        slotStep:15,
+        minAdvanceHours:2,
+        maxAdvanceDays:30,
+        approvalMode:'auto',
+        workingDays:[1,2,3,4,5,6],
+        telegramEnabled:false
+      };
+      const cfg={services,bookingSettings,localBlocks:[]};
+      const price=Math.max(0,Number(b.priceCents||1990000));
+      const start=String(b.start||'')||null;
+      const renewal=String(b.renewal||'')||null;
+
+      await env.DB.batch([
+        env.DB.prepare('INSERT INTO businesses(slug,owner_secret,business_name,config_json,telegram_chat_id,updated_at) VALUES(?,?,?,?,?,?)')
+          .bind(slug,secret,name,JSON.stringify(cfg),'',now),
+        env.DB.prepare('INSERT INTO admin_business_meta(slug,owner,phone,notes,start_date,created_at,updated_at) VALUES(?,?,?,?,?,?,?)')
+          .bind(slug,String(b.owner||'').trim(),String(b.phone||'').trim(),String(b.notes||'').trim(),start,now,now),
+        env.DB.prepare('INSERT INTO business_subscriptions(slug,status,plan_code,cohort,list_price_cents,effective_price_cents,currency,current_period_start,current_period_end,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)')
+          .bind(slug,'ACTIVE',String(b.plan||'barberia'),'standard',price,price,'ARS',start,renewal,now,now)
+      ]);
+
+      return json({
+        ok:true,
+        business:{
+          slug,name,ownerSecret:secret,status:'ACTIVE',
+          priceCents:price,start,renewal,services,bookingSettings
+        }
+      });
+    }
+
+    if(path==='/api/platform/payment-record'&&req.method==='POST'){
+      if(!platformOk(req,env))return text('No autorizado.',403);
+      const b=await req.json();
+      const slug=cleanSlug(b.slug);
+      if(!slug)return text('Falta negocio.');
+      if(!await business(env,slug))return text('Negocio no encontrado.',404);
+      await ensureLicenseTables(env);
+      await ensureAdminTables(env);
+      const now=nowIso();
+      const paidAt=String(b.paidAt||now);
+      const amountCents=Math.max(0,Math.round(Number(b.amountCents||0)));
+      const renewal=String(b.renewal||'')||null;
+      const id=crypto.randomUUID();
+      await env.DB.batch([
+        env.DB.prepare('INSERT INTO platform_payments(id,slug,amount_cents,currency,paid_at,created_at) VALUES(?,?,?,?,?,?)')
+          .bind(id,slug,amountCents,'ARS',paidAt,now),
+        env.DB.prepare("UPDATE business_subscriptions SET status='ACTIVE',current_period_end=COALESCE(?,current_period_end),suspended_at=NULL,updated_at=? WHERE slug=?")
+          .bind(renewal,now,slug)
+      ]);
+      return json({ok:true,id});
+    }
+
     if(path==='/api/recovery/code'&&req.method==='POST'){
       const body=await req.json(),slug=cleanSlug(body.slug),row=await business(env,slug);
       if(!row)return text('Negocio no encontrado.',404);
