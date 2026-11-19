@@ -417,7 +417,19 @@ export default {
       const slot=buildSlots(cfg,b.date,b.serviceId,q.results||[]).find(x=>x.time===b.time);if(!slot)return text('Ese horario ya no está disponible. Elegí otro.',409);
       if(!String(b.clientName||'').trim()||!String(b.clientPhone||'').trim())return text('Faltan nombre o teléfono.');
       const id=crypto.randomUUID(),status=cfg.bookingSettings?.approvalMode==='manual'?'pending':'confirmed',created=nowIso();
-      await env.DB.prepare('INSERT INTO bookings(id,slug,service_id,service_name,date,time,status,price,client_name,client_phone,note,imported,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(id,slug,srv.id,srv.name,b.date,b.time,status,Number(srv.price||0),String(b.clientName).trim(),String(b.clientPhone).trim(),String(b.note||'').trim(),0,created).run();
+
+      const clientName=String(b.clientName).trim(),clientPhone=String(b.clientPhone).trim();
+      const saved=await env.DB.prepare(`INSERT INTO bookings
+        (id,slug,service_id,service_name,date,time,status,price,client_name,client_phone,note,imported,created_at)
+        SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?
+        WHERE NOT EXISTS (
+          SELECT 1 FROM bookings
+          WHERE slug=? AND service_id=? AND date=? AND time=?
+            AND status IN ('pending','confirmed')
+            AND lower(trim(client_name))=lower(?) AND trim(client_phone)=?
+        )`).bind(id,slug,srv.id,srv.name,b.date,b.time,status,Number(srv.price||0),clientName,clientPhone,String(b.note||'').trim(),0,created,slug,srv.id,b.date,b.time,clientName,clientPhone).run();
+      if(!saved.meta?.changes)return text('Ya existe una reserva para esta persona, servicio y horario.',409);
+
       await telegram(env,row,cfg,{...b,serviceName:srv.name});
       return json({ok:true,id,status});
     }
