@@ -24,7 +24,7 @@ label{display:block;font-size:12px;font-weight:700;margin-top:10px}input,select,
 <div><h1>MI NEGOCIO ADMIN</h1><div class="muted">Altas, suscripciones y entregas</div></div>
 <div class="toolbar"><button class="btn soft" id="platformKeyBtn">Clave plataforma</button><button class="btn soft" id="exportBtn">Backup</button><button class="btn soft" id="importBtn">Restaurar</button><button class="btn dark" id="newBtn">+ Dar de alta local</button></div>
 </header>
-<div class="note section"><b>Versión operativa de preparación.</b> Podés cargar clientes, controlar estado/pagos, crear el negocio en el backend y generar el paquete de entrega.</div>
+<div class="note section"><b>ADMIN operativo.</b> Podés cargar clientes, controlar estado/pagos, crear el negocio en el backend y generar el paquete de entrega.</div>
 <section class="grid">
 <div class="card"><div class="muted">Activos</div><div class="value" id="kActive">0</div></div>
 <div class="card"><div class="muted">En gracia</div><div class="value" id="kGrace">0</div></div>
@@ -69,7 +69,7 @@ async function syncFromServer(){
    if(!r.ok)throw new Error(await r.text());
    var data=await r.json();
    var pending=(db.businesses||[]).filter(function(x){return !x.provisionedAt});
-   var server=(data.businesses||[]).map(function(s){
+   var server=(data.businesses||[]).filter(function(s){return s.slug!=='brian-barber'}).map(function(s){
      return{
        id:'srv-'+s.slug,
        name:s.name||s.slug,
