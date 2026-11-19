@@ -470,7 +470,12 @@ button.row:active{background:var(--paper)}
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <link rel="apple-touch-icon" href="./icon-192.png" />
 <script src="./qrcode.min.js?v=20261004-2"></script>
-</head>
+<style id="mnLicenseStyle">
+#mnLicenseBlocker{position:fixed;inset:0;z-index:999999;background:rgba(244,246,245,.98);display:grid;place-items:center;padding:22px;font-family:Inter,system-ui,sans-serif}
+#mnLicenseBlocker .box{max-width:520px;width:100%;background:#fff;border:1px solid #dfe5e3;border-radius:20px;padding:24px;box-shadow:0 20px 80px #0002;text-align:center;color:#17201f}
+#mnLicenseBlocker h2{margin:0 0 10px}#mnLicenseBlocker p{color:#65706e;line-height:1.45}
+#mnLicenseBlocker .tag{display:inline-block;padding:6px 10px;border-radius:999px;background:#ffe1e1;color:#8b1f1f;font-weight:800;font-size:12px;margin-bottom:12px}
+</style></head>
 <body>
 <div class="page"><main class="phone"><div class="topStatus"><span class="badgeDot"></span>Privacidad: caja, costos, stock y reportes quedan en este dispositivo</div><div id="content" class="content"></div><div id="nav" class="nav"></div><div id="modal"></div></main></div>
 <script>
@@ -627,6 +632,23 @@ function affectedServices(invId){return data.services.filter(s=>(s.recipe||[]).s
 function registerCostIncrease(item,oldCost,newCost){oldCost=Number(oldCost||0);newCost=Number(newCost||0);if(oldCost>0&&newCost>oldCost)item.costChange={from:oldCost,to:newCost,date:TODAY,ack:false};else if(newCost<=oldCost)item.costChange=null}
 function marginInfo(s){const materials=serviceMaterialCost(s.id,1),price=Number(s.price||0),pct=price>0?Math.round(materials/price*100):0;return {materials,pct,margin:price-materials}}
 function onlineCfg(){return data.settings.onlineBookings||(data.settings.onlineBookings={enabled:false,slug:'mi-barberia',publicBaseUrl:'',backendUrl:DEFAULT_BACKEND,ownerSecret:(crypto.randomUUID?crypto.randomUUID():id('owner_')),deviceToken:'',deviceLabel:'',telegramEnabled:false,telegramChatId:'',telegramPairCode:'',openTime:'09:00',closeTime:'19:00',slotStep:15,minAdvanceHours:2,maxAdvanceDays:30,approvalMode:'auto',workingDays:[1,2,3,4,5,6],lastSyncAt:''})}
+const LICENSE_ALLOWED=new Set(['ACTIVE','GRACE','CANCELLATION_PENDING']);
+function showLicenseBlocker(status){
+ let el=document.getElementById('mnLicenseBlocker');
+ if(LICENSE_ALLOWED.has(String(status||'ACTIVE'))){if(el)el.remove();window.__mnLicenseBlocked=false;return}
+ window.__mnLicenseBlocked=true;
+ if(!el){el=document.createElement('div');el.id='mnLicenseBlocker';document.body.appendChild(el)}
+ const label=String(status||'SUSPENDED');
+ el.innerHTML=`<div class="box"><div class="tag">${esc(label)}</div><h2>Suscripción suspendida</h2><p>Los datos del negocio siguen guardados. Para volver a usar MI NEGOCIO, regularizá la suscripción y la cuenta se reactiva sin perder información.</p></div>`;
+}
+async function checkLicenseGate(){
+ try{
+  const c=onlineCfg();if(!c.backendUrl||!c.slug||location.protocol==='file:')return true;
+  const r=await fetch(cleanBackend(c.backendUrl)+'/api/license?slug='+encodeURIComponent(cleanSlug(c.slug)),{cache:'no-store'});
+  if(!r.ok)return true;
+  const lic=await r.json();showLicenseBlocker(lic.status||'ACTIVE');return LICENSE_ALLOWED.has(String(lic.status||'ACTIVE'));
+ }catch(_){return true}
+}
 function operationalAuthHeaders(withJson=false){const c=onlineCfg(),h={};if(withJson)h['Content-Type']='application/json';if(c.deviceToken)h['x-device-token']=c.deviceToken;else if(c.ownerSecret)h['x-owner-secret']=c.ownerSecret;return h}
 function hasOperationalCredential(){const c=onlineCfg();return Boolean(c.ownerSecret||c.deviceToken)}
 function cleanSlug(v){return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)||'mi-barberia'}
@@ -1264,9 +1286,9 @@ window.addEventListener('popstate',e=>{const st=e.state;if($('#modal').innerHTML
 if(location.protocol!=='file:')history.replaceState(appHistoryState(),'',location.href);
 
 window.addEventListener('storage',e=>{if(e.key===KEY&&e.newValue){try{data=migrate(JSON.parse(e.newValue));applyTheme();render()}catch(_){}}});
-setTimeout(async()=>{const c=onlineCfg();if(c.backendUrl){await syncSharedOperationsCycle();if(c.enabled&&c.ownerSecret&&!c.deviceToken)syncOnlineBusiness(false)}},400);
-setInterval(()=>syncSharedOperationsCycle(),2500);
-window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncSharedOperationsCycle()});
+setTimeout(async()=>{await checkLicenseGate();const c=onlineCfg();if(c.backendUrl&&!window.__mnLicenseBlocked){await syncSharedOperationsCycle();if(c.enabled&&c.ownerSecret&&!c.deviceToken)syncOnlineBusiness(false)}},400);
+setInterval(()=>{if(!window.__mnLicenseBlocked)syncSharedOperationsCycle()},2500);setInterval(()=>checkLicenseGate(),60000);
+window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){checkLicenseGate();if(!window.__mnLicenseBlocked)syncSharedOperationsCycle()}});
 applyTheme();
 render();
 })();
