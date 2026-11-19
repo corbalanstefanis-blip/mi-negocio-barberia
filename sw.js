@@ -1,5 +1,5 @@
 // Reintento de publicación GitHub Pages - 2026-10-09
-const CACHE='mi-negocio-barberia-v53-local-first-queue';
+const CACHE='mi-negocio-barberia-v54-licenses-admin';
 const ASSETS=['./','./index.html','./reservas.html','./llegada.html','./qrcode.min.js?v=20261004-2','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 
 self.addEventListener('install',event=>{
