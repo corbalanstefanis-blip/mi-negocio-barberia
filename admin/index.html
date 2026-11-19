@@ -47,9 +47,9 @@ label{display:block;font-size:12px;font-weight:700;margin-top:10px}input,select,
 <label>Plan<select id="fPlan"><option value="barberia">Barbería</option></select></label>
 <label>Precio mensual<input id="fPrice" type="number" value="19900"></label>
 <label>Fecha de alta<input id="fStart" type="date"></label>
-<label>Próxima renovación<input id="fRenew" type="date"></label>
+<label>Próxima renovación<input id="fRenew" type="date"></label><label>Abre<input id="fOpen" type="time" value="09:00"></label><label>Cierra<input id="fClose" type="time" value="19:00"></label>
 </div>
-<label>Notas<textarea id="fNotes"></textarea></label>
+<label>Servicios iniciales <span class="muted">(uno por línea: Nombre | Precio | Minutos)</span><textarea id="fServices" placeholder="Corte | 9000 | 30\nBarba | 6000 | 20"></textarea></label><label>Notas<textarea id="fNotes"></textarea></label>
 <div class="actions"><button class="btn soft" id="cancelDlg">Cancelar</button><button class="btn dark" id="saveDlg">Guardar alta</button></div>
 </div></dialog>
 
@@ -84,7 +84,7 @@ function render(){
  Array.prototype.forEach.call(document.querySelectorAll('[data-open]'),function(btn){btn.onclick=function(){openDetail(btn.getAttribute('data-open'))}});
 }
 function openNew(){
- document.getElementById('dlgTitle').textContent='Dar de alta local';['fName','fOwner','fPhone','fSlug','fNotes'].forEach(function(x){document.getElementById(x).value=''});
+ document.getElementById('dlgTitle').textContent='Dar de alta local';['fName','fOwner','fPhone','fSlug','fNotes','fServices'].forEach(function(x){document.getElementById(x).value=''});
  document.getElementById('fPrice').value='19900';document.getElementById('fStart').value=today();document.getElementById('fRenew').value=addMonth(today());
  document.getElementById('dlg').showModal();
 }
@@ -94,7 +94,7 @@ document.getElementById('saveDlg').onclick=function(){
  var name=document.getElementById('fName').value.trim(),owner=document.getElementById('fOwner').value.trim(),phone=document.getElementById('fPhone').value.trim(),slug=slugify(document.getElementById('fSlug').value||name);
  if(!name||!owner||!slug){alert('Completá nombre del local, titular y slug.');return}
  if(db.businesses.some(function(b){return b.slug===slug})){alert('Ese slug ya existe.');return}
- db.businesses.push({id:id(),name:name,owner:owner,phone:phone,slug:slug,plan:'barberia',price:Number(document.getElementById('fPrice').value||19900),start:document.getElementById('fStart').value||today(),renewal:document.getElementById('fRenew').value||addMonth(today()),status:'ACTIVE',notes:document.getElementById('fNotes').value.trim(),createdAt:new Date().toISOString(),ownerSecret:'owner_'+id().replace(/-/g,'')});
+ var services=document.getElementById('fServices').value.split(/\n+/).map(function(line,i){var p=line.split('|').map(function(x){return x.trim()});if(!p[0])return null;return{id:'s'+(i+1),name:p[0],price:Number(p[1]||0),duration:Number(p[2]||30),onlineEnabled:true,allowOverbook:false,maxConcurrent:1,recipe:[]}}).filter(Boolean);db.businesses.push({id:id(),name:name,owner:owner,phone:phone,slug:slug,plan:'barberia',price:Number(document.getElementById('fPrice').value||19900),start:document.getElementById('fStart').value||today(),renewal:document.getElementById('fRenew').value||addMonth(today()),openTime:document.getElementById('fOpen').value||'09:00',closeTime:document.getElementById('fClose').value||'19:00',services:services,status:'ACTIVE',notes:document.getElementById('fNotes').value.trim(),createdAt:new Date().toISOString(),ownerSecret:'owner_'+id().replace(/-/g,'')});
  save();document.getElementById('dlg').close();
 }
 function openDetail(bid){
@@ -114,7 +114,7 @@ function openDetail(bid){
   var txt='MI NEGOCIO - '+b.name+'\nApp: '+app+'\nReservas: '+booking+'\nSlug: '+b.slug;
   if(navigator.clipboard)navigator.clipboard.writeText(txt).then(function(){alert('Datos copiados.')});else prompt('Copiá:',txt)
  };
- document.getElementById('downloadPack').onclick=function(){download(JSON.stringify({version:1,business:{name:b.name,owner:b.owner,phone:b.phone,slug:b.slug,plan:b.plan,price:b.price,start:b.start,renewal:b.renewal},appUrl:app,bookingUrl:booking,ownerSecret:b.ownerSecret},null,2),'alta-'+b.slug+'.json')};
+ document.getElementById('downloadPack').onclick=function(){download(JSON.stringify({version:1,business:{name:b.name,owner:b.owner,phone:b.phone,slug:b.slug,plan:b.plan,price:b.price,start:b.start,renewal:b.renewal,openTime:b.openTime||'09:00',closeTime:b.closeTime||'19:00',services:b.services||[]},appUrl:app,bookingUrl:booking,ownerSecret:b.ownerSecret},null,2),'alta-'+b.slug+'.json')};
  Array.prototype.forEach.call(document.querySelectorAll('[data-state]'),function(x){x.onclick=function(){b.status=x.getAttribute('data-state');save();openDetail(b.id)}});
  document.getElementById('paymentBtn').onclick=function(){var amount=prompt('Importe cobrado',String(b.price));if(amount===null)return;var n=Number(String(amount).replace(/[^0-9.,]/g,'').replace(',','.'));if(!n)return alert('Importe inválido');db.payments.push({id:id(),businessId:b.id,amount:n,status:'PAID',paidAt:new Date().toISOString()});b.status='ACTIVE';b.renewal=addMonth(b.renewal||today());save();openDetail(b.id)};
  document.getElementById('detailDlg').showModal();
