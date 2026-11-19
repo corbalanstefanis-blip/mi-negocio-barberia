@@ -1178,21 +1178,32 @@ const queueStatusPending=new Set();
 async function queueStatus(qId,status){
  const q=data.queue.find(x=>x.id===qId);if(!q||queueStatusPending.has(qId))return;
  queueStatusPending.add(qId);
+ const previous=q.status;
+ // La operación del local es local-first: Atender debe responder aunque el
+ // backend esté temporalmente sin credencial o sin conexión.
+ q.status=status;
+ q.localDirtyUntil=Date.now()+12*60*60*1000;
+ q.syncPending=true;
+ localStorage.setItem(KEY,JSON.stringify(data));render();
  try{
   if(sharedOpsReady()){
    const res=await sharedPost('/api/owner/queue-upsert',{...queueSharedPayload(q),status});
    q.updatedAt=res?.updatedAt||q.updatedAt;
-  }else if(onlineCfg().backendUrl){
-   alert('No se pudo verificar la conexión de la fila. El estado no cambió.');return;
+   q.localDirtyUntil=0;
+   q.syncPending=false;
+   localStorage.setItem(KEY,JSON.stringify(data));
+  }else{
+   scheduleSharedOperationsPush();
   }
-  q.status=status;
-  // A delayed server read may still contain the previous status. Keep the
-  // confirmed local transition authoritative during the sync overlap.
-  q.localDirtyUntil=Date.now()+30000;
-  localStorage.setItem(KEY,JSON.stringify(data));render();
+ }catch(e){
+  sharedOpsLastError=String(e.message||e);
+  // No deshacer el cambio local: queda pendiente de sincronización.
+  q.status=status||previous;
+  q.syncPending=true;
+  localStorage.setItem(KEY,JSON.stringify(data));
   scheduleSharedOperationsPush();
- }catch(e){sharedOpsLastError=String(e.message||e);alert('No se pudo guardar el cambio de estado en la fila: '+sharedOpsLastError)}
- finally{queueStatusPending.delete(qId)}
+  console.warn('Cambio de fila pendiente de sincronización:',sharedOpsLastError);
+ }finally{queueStatusPending.delete(qId)}
 }
 function closeModal(){$('#modal').innerHTML='';if(location.protocol!=='file:'&&history.state?.miNegocioModal)history.replaceState(appHistoryState(),'',location.href)}
 
